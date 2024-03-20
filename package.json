@@ -1,0 +1,24 @@
+{
+	"name": "@automouse/recorder",
+	"description": "Web client to record mouse movements",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"build": "vite build",
+		"start": "vite"
+	},
+	"dependencies": {
+		"@solidjs/router": "^0.12.4",
+		"@suid/icons-material": "^0.6.11",
+		"@suid/material": "^0.15.1",
+		"konva": "^9.3.6",
+		"solid-js": "^1.8.15"
+	},
+	"devDependencies": {
+		"@suid/vite-plugin": "^0.1.5",
+		"sass": "^1.71.1",
+		"typescript": "^5.3.3",
+		"vite": "^5.1.4",
+		"vite-plugin-solid": "^2.10.1"
+	}
+}
