@@ -1,8 +1,7 @@
 import { createElementSize } from "@solid-primitives/resize-observer";
 import Konva from "konva";
-import { Layer as KLayer, LayerConfig } from "konva/lib/Layer";
-import { ShapeConfig } from "konva/lib/Shape";
-import { Stage as KStage, StageConfig } from "konva/lib/Stage";
+import type { StageConfig } from "konva/lib/Stage";
+import type { LayerConfig } from "konva/lib/Layer";
 import {
 	createContext,
 	createEffect,
@@ -33,7 +32,7 @@ export type TransformerEvents = Partial<Record<
 function createStage(props: Omit<StageConfig, "container">) {
 	const [containerRef, setContainerRef] = createSignal<HTMLDivElement>();
 	const size = createElementSize(containerRef);
-	const [stage, setStage] = createSignal<KStage>();
+	const [stage, setStage] = createSignal<Konva.Stage>();
 
 	onMount(() => setStage(
 		new Konva.Stage({
@@ -60,40 +59,30 @@ function createStage(props: Omit<StageConfig, "container">) {
 }
 
 const StageContext = createContext<ReturnType<typeof createStage>>();
-export const StageContextProvider: ParentComponent<{ stageProps: ReturnType<typeof createStage> }> = props =>
-	<StageContext.Provider value={props.stageProps}>
-		{props.children}
-	</StageContext.Provider>;
-
 export const useStage = () => useContext(StageContext);
 export const Stage: Component<JSX.HTMLAttributes<HTMLDivElement> & Omit<StageConfig, "container">> = props => {
 	const stageProps = createStage({ ...props });
 	return <div ref={stageProps.ref} {...props}>
-		<StageContextProvider stageProps={stageProps}>
+		<StageContext.Provider value={stageProps}>
 			{props.children}
-		</StageContextProvider>
+		</StageContext.Provider>
 	</div>;
 }
 
-const LayerContext = createContext<{ layer: KLayer }>();
-const useLayer = () => useContext(LayerContext);
+const LayerContext = createContext<{ layer: Konva.Layer }>();
+export const useLayer = () => useContext(LayerContext);
 export const Layer: ParentComponent<LayerConfig> = props => {
 	const layer = new Konva.Layer(props);
-	const stage = useStage();
+	const stageContext = useStage();
 
-	createEffect(() => stage?.stage()?.add(layer));
+	createEffect(() => stageContext?.stage()?.add(layer));
 	createEffect(() => layer.setAttrs(props));
 
 	onCleanup(() => layer.destroy());
 
-	return (
-		// idk why, but this div fixes using <Show>
-		<div>
-			<LayerContext.Provider value={{ layer }}>
+	return <LayerContext.Provider value={{ layer }}>
 				{props.children}
-			</LayerContext.Provider>
-		</div>
-	);
+	</LayerContext.Provider>;
 }
 
 const propsToSkip: Record<string, boolean> = {
