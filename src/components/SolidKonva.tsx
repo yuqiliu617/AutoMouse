@@ -11,6 +11,7 @@ import {
 	createSignal,
 	onCleanup,
 	onMount,
+	splitProps,
 	useContext,
 	type Component,
 	type ParentComponent,
@@ -33,41 +34,43 @@ export type TransformerEvents = Partial<Record<
 	(e: Konva.KonvaEventObject<Konva.Transformer>) => void
 >>;
 
-function createStage(props: Omit<StageConfig, "container">) {
-	const [containerRef, setContainerRef] = createSignal<HTMLDivElement>();
-	const size = createElementSize(containerRef);
-	const [stage, setStage] = createSignal<Konva.Stage>();
+const StageContext = createContext<{ stage?: Konva.Stage }>();
+export const useStage = () => useContext(StageContext);
+export type StageProps = Omit<StageConfig, "container"> & {
+	autoSize?: boolean;
+	containerProps?: JSX.HTMLAttributes<HTMLDivElement>;
+};
 
-	onMount(() => setStage(
-		new Konva.Stage({
+export const Stage: ParentComponent<StageProps> = props => {
+	const [divProps, stageProps] = splitProps(props, ["containerProps"]);
+	const [container, setContainer] = createSignal<HTMLDivElement>();
+	const [stage, setStage] = createSignal<Konva.Stage>();
+	const size = props.autoSize
+		? createElementSize(container)
+		: { width: stageProps.width, height: stageProps.height };
+
+	onMount(() => {
+		const stage = new Konva.Stage({
 			height: size.width!,
 			width: size.height!,
-			container: containerRef()!,
-			...props,
-		})
-	));
+			container: container()!,
+			...stageProps,
+		});
+		setStage(stage);
+	});
 
-	createEffect(() => stage()?.setAttrs({
-		width: size.width,
-		height: size.height,
-	}));
+	if (props.autoSize)
+		createEffect(() => stage()?.setAttrs({
+			width: size.width,
+			height: size.height,
+		}));
 
 	onCleanup(() => stage()?.destroy());
 
-	return {
-		...props,
-		ref: setContainerRef,
-		containerRef,
-		stage,
-	};
-}
-
-const StageContext = createContext<ReturnType<typeof createStage>>();
-export const useStage = () => useContext(StageContext);
-export const Stage: Component<JSX.HTMLAttributes<HTMLDivElement> & Omit<StageConfig, "container">> = props => {
-	const stageProps = createStage({ ...props });
-	return <div ref={stageProps.ref} {...props}>
-		<StageContext.Provider value={stageProps}>
+	const context: { stage?: Konva.Stage } = {};
+	Object.defineProperty(context, "stage", { get: stage, set: setStage });
+	return <div ref={setContainer} {...divProps.containerProps}>
+		<StageContext.Provider value={context}>
 			{props.children}
 		</StageContext.Provider>
 	</div>;
@@ -79,7 +82,7 @@ export const Layer: ParentComponent<LayerConfig> = props => {
 	const layer = new Konva.Layer(props);
 	const stageContext = useStage();
 
-	createEffect(() => stageContext?.stage()?.add(layer));
+	createEffect(() => stageContext?.stage?.add(layer));
 	createEffect(() => layer.setAttrs(props));
 
 	onCleanup(() => layer.destroy());
@@ -92,16 +95,11 @@ export const Layer: ParentComponent<LayerConfig> = props => {
 const GroupContext = createContext<{ group: Konva.Group }>();
 export const useGroup = () => useContext(GroupContext);
 
-const propsToSkip: Record<string, boolean> = {
-	children: true,
-	ref: true,
-	key: true,
-	style: true,
-	forwardedRef: true,
-	unstable_applyCache: true,
-	unstable_applyDrawHitFromCache: true,
-};
-
+const propsToSkip = ["children", "ref", "key", "style", "forwardedRef"];
+function getEventName(key: string) {
+	const name = key.substring(2).toLowerCase();
+	return name.substring(0, 7) === "content" ? `content${name.at(7)!.toUpperCase()}${name.substring(8)}` : name;
+}
 type ConfigType<T extends Konva.Node> = T extends ShapeType<infer U> ? U : T extends Konva.Transformer ? TransformerConfig : T extends Konva.Group ? GroupConfig : never;
 type EventsType<T extends Konva.Node> = KonvaEvents<T> & (T extends Konva.Transformer ? TransformerEvents : {});
 function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(config: ConfigType<T>): T }):
@@ -127,28 +125,22 @@ function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(conf
 				return;
 			if (prevProps) {
 				for (const key in prevProps) {
-					if (propsToSkip[key])
+					if (propsToSkip.includes(key) || key.startsWith("unstable_"))
 						continue;
 					if (key.startsWith("on") && prevProps[key] !== props[key]) {
-						let eventName = key.substring(2).toLowerCase();
-						if (eventName.substring(0, 7) === "content")
-							eventName = `content${eventName.at(7)!.toUpperCase()}${eventName.substring(8)}`;
+						const eventName = getEventName(key);
 						entity()!.off(eventName, prevProps[key]);
 					}
 					if (!props.hasOwnProperty(key))
 						entity()!.setAttr(key, undefined);
 				}
 			}
-
 			const newEvents = new Map<string, any>();
 			for (const key in props) {
-				if (propsToSkip[key])
+				if (propsToSkip.includes(key) || key.startsWith("unstable_"))
 					continue;
 				if (key.startsWith("on") && prevProps?.[key] !== props[key]) {
-					let eventName = key.substring(2).toLowerCase();
-					if (eventName.substring(0, 7) === "content")
-						eventName = `content${eventName.at(7)!.toUpperCase()}${eventName.substring(8)}`;
-					// check that event is not undefined
+					const eventName = getEventName(key);
 					if (props[key])
 						newEvents.set(eventName, props[key]);
 				}
@@ -159,9 +151,9 @@ function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(conf
 
 		onCleanup(() => entity()?.destroy());
 
-		const e = entity();
-		return e instanceof Konva.Group
-			? <GroupContext.Provider value={{ group: e }}>
+		const group = entity();
+		return group instanceof Konva.Group
+			? <GroupContext.Provider value={{ group }}>
 				{props.children}
 			</GroupContext.Provider>
 			: <>{/* shape */}</>;
