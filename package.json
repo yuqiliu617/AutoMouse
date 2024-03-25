@@ -8,6 +8,7 @@
 		"start": "vite"
 	},
 	"dependencies": {
+		"@solid-primitives/resize-observer": "^2.0.25",
 		"@solidjs/router": "^0.13.1",
 		"@suid/icons-material": "^0.7.0",
 		"@suid/material": "^0.16.0",
