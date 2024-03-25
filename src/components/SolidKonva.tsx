@@ -2,6 +2,9 @@ import { createElementSize } from "@solid-primitives/resize-observer";
 import Konva from "konva";
 import type { StageConfig } from "konva/lib/Stage";
 import type { LayerConfig } from "konva/lib/Layer";
+import type { Shape as ShapeType } from "konva/lib/Shape";
+import type { GroupConfig } from "konva/lib/Group";
+import type { TransformerConfig } from "konva/lib/shapes/Transformer";
 import {
 	createContext,
 	createEffect,
@@ -10,23 +13,24 @@ import {
 	onMount,
 	useContext,
 	type Component,
-	type ParentComponent
+	type ParentComponent,
+	type VoidComponent
 } from "solid-js";
 import type { JSX } from "solid-js/jsx-runtime";
 
-export type KonvaEvents = Partial<Record<
+export type KonvaEvents<T extends Konva.Node = Konva.Shape> = Partial<Record<
 	// Mouse events
 	"onMouseOver" | "onMouseOut" | "onMouseEnter" | "onMouseLeave" | "onMouseMove" | "onMouseDown" | "onMouseUp" | "onWheel" | "onClick" | "onDblClick" | "onTouchStart" | "onTouchMove" | "onTouchEnd" | "onTap" | "onDblTap" |
 	// Touch events
 	"onPointerDown" | "onPointerMove" | "onPointerUp" | "onPointerCancel" | "onPointerOver" | "onPointerEnter" | "onPointerOut" | "onPointerLeave" | "onPointerClick" | "onPointerDblClick" |
 	// Drag events
 	"onDragStart" | "onDragMove" | "onDragEnd",
-	(e: Konva.KonvaEventObject<Konva.Shape>) => void
+	(e: Konva.KonvaEventObject<T>) => void
 >>;
 
 export type TransformerEvents = Partial<Record<
 	"onTransformStart" | "onTransform" | "onTransformEnd",
-	(e: Konva.KonvaEventObject<Konva.Shape>) => void
+	(e: Konva.KonvaEventObject<Konva.Transformer>) => void
 >>;
 
 function createStage(props: Omit<StageConfig, "container">) {
@@ -81,9 +85,12 @@ export const Layer: ParentComponent<LayerConfig> = props => {
 	onCleanup(() => layer.destroy());
 
 	return <LayerContext.Provider value={{ layer }}>
-				{props.children}
+		{props.children}
 	</LayerContext.Provider>;
 }
+
+const GroupContext = createContext<{ group: Konva.Group }>();
+export const useGroup = () => useContext(GroupContext);
 
 const propsToSkip: Record<string, boolean> = {
 	children: true,
@@ -95,18 +102,23 @@ const propsToSkip: Record<string, boolean> = {
 	unstable_applyDrawHitFromCache: true,
 };
 
-type KonvaShape = "Group" | "Rect" | "Circle" | "Ellipse" | "Wedge" | "Line" | "Sprite" | "Image" | "Text" | "TextPath" | "Star" | "Ring" | "Arc" | "Tag" | "Path" | "RegularPolygon" | "Arrow" | "Shape" | "Transformer";
-
-function createEntity<T extends object = {}>(shapeName: KonvaShape) {
-	const Entity: Component<ShapeConfig & KonvaEvents & T> = props => {
+type ConfigType<T extends Konva.Node> = T extends ShapeType<infer U> ? U : T extends Konva.Transformer ? TransformerConfig : T extends Konva.Group ? GroupConfig : never;
+type EventsType<T extends Konva.Node> = KonvaEvents<T> & (T extends Konva.Transformer ? TransformerEvents : {});
+function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(config: ConfigType<T>): T }):
+	T extends Konva.Container ? ParentComponent<ConfigType<T> & EventsType<T>> : VoidComponent<ConfigType<T> & EventsType<T>> {
+	const Entity: Component<ConfigType<T> & EventsType<T>> = props => {
 		let prevProps: undefined | typeof props = undefined;
-		const [entity, setEntity] = createSignal<Konva.Shape>();
-		const layer = useLayer();
+		const [entity, setEntity] = createSignal<T>();
+		const groupContext = useGroup();
+		const layerContext = useLayer();
 
 		onMount(() => {
-			const entity = new (Konva as any)[shapeName](props) as Konva.Shape;
-			setEntity(entity);
-			layer?.layer?.add(entity);
+			const entity = new Shape(props) as Konva.Group | ShapeType;
+			setEntity(entity as any);
+			if (groupContext)
+				groupContext.group.add(entity);
+			else if (layerContext)
+				layerContext.layer.add(entity);
 		});
 
 		createEffect(() => entity()?.setAttrs(props));
@@ -146,27 +158,34 @@ function createEntity<T extends object = {}>(shapeName: KonvaShape) {
 		});
 
 		onCleanup(() => entity()?.destroy());
-		return <>{/* shape */}</>;
+
+		const e = entity();
+		return e instanceof Konva.Group
+			? <GroupContext.Provider value={{ group: e }}>
+				{props.children}
+			</GroupContext.Provider>
+			: <>{/* shape */}</>;
 	}
-	return Entity;
+	return Entity as any;
 }
 
-export const Group = createEntity("Group");
-export const Rect = createEntity("Rect");
-export const Circle = createEntity("Circle");
-export const Ellipse = createEntity("Ellipse");
-export const Wedge = createEntity("Wedge");
-export const Line = createEntity("Line");
-export const Sprite = createEntity("Sprite");
-export const Image = createEntity("Image");
-export const Text = createEntity("Text");
-export const TextPath = createEntity("TextPath");
-export const Star = createEntity("Star");
-export const Ring = createEntity("Ring");
-export const Arc = createEntity("Arc");
-export const Tag = createEntity("Tag");
-export const Path = createEntity("Path");
-export const RegularPolygon = createEntity("RegularPolygon");
-export const Arrow = createEntity("Arrow");
-export const Shape = createEntity("Shape");
-export const Transformer = createEntity<TransformerEvents>("Transformer");
+export const Shape = createEntity(Konva.Shape);
+export const Rect = createEntity(Konva.Rect);
+export const Circle = createEntity(Konva.Circle);
+export const Ellipse = createEntity(Konva.Ellipse);
+export const Wedge = createEntity(Konva.Wedge);
+export const Line = createEntity(Konva.Line);
+export const Sprite = createEntity(Konva.Sprite);
+export const Image = createEntity(Konva.Image);
+export const Text = createEntity(Konva.Text);
+export const TextPath = createEntity(Konva.TextPath);
+export const Star = createEntity(Konva.Star);
+export const Ring = createEntity(Konva.Ring);
+export const Arc = createEntity(Konva.Arc);
+export const Label = createEntity(Konva.Label);
+export const Tag = createEntity(Konva.Tag);
+export const Path = createEntity(Konva.Path);
+export const RegularPolygon = createEntity(Konva.RegularPolygon);
+export const Arrow = createEntity(Konva.Arrow);
+export const Group = createEntity(Konva.Group);
+export const Transformer = createEntity(Konva.Transformer);
