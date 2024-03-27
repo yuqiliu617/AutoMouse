@@ -39,8 +39,8 @@ export const useStage = () => useContext(StageContext);
 export type StageProps = Omit<StageConfig, "container"> & {
 	autoSize?: boolean;
 	containerProps?: JSX.HTMLAttributes<HTMLDivElement>;
+	onCreate?: (stage: Konva.Stage) => void;
 };
-
 export const Stage: ParentComponent<StageProps> = props => {
 	const [divProps, stageProps] = splitProps(props, ["containerProps"]);
 	const [container, setContainer] = createSignal<HTMLDivElement>();
@@ -57,6 +57,7 @@ export const Stage: ParentComponent<StageProps> = props => {
 			...stageProps,
 		});
 		setStage(stage);
+		props.onCreate?.(stage);
 	});
 	if (props.autoSize)
 		createEffect(() => stage()?.setAttrs({
@@ -76,12 +77,17 @@ export const Stage: ParentComponent<StageProps> = props => {
 
 const LayerContext = createContext<{ layer: Konva.Layer }>();
 export const useLayer = () => useContext(LayerContext);
-export const Layer: ParentComponent<LayerConfig> = props => {
+export type LayerProps = LayerConfig & {
+	onCreate?: (layer: Konva.Layer) => void;
+};
+export const Layer: ParentComponent<LayerProps> = props => {
 	const stageContext = useStage();
 	const layer = new Konva.Layer({ ...props }); // Avoid recreating layer on every render
 
-	onMount(() => stageContext?.stage?.add(layer));
-	createEffect(() => layer.setAttrs(props));
+	onMount(() => {
+		stageContext?.stage?.add(layer);
+		props.onCreate?.(layer);
+	});
 	onCleanup(() => layer.destroy());
 
 	return <div> {/* Prevent the canvas created by Konva from being removed by SolidJS */}
@@ -101,6 +107,9 @@ function getEventName(key: string) {
 }
 type ConfigType<T extends Konva.Node> = T extends ShapeType<infer U> ? U : T extends Konva.Transformer ? TransformerConfig : T extends Konva.Group ? GroupConfig : never;
 type EventsType<T extends Konva.Node> = KonvaEvents<T> & (T extends Konva.Transformer ? TransformerEvents : {});
+export type ShapeProps<T extends Konva.Shape | Konva.Container = Konva.Shape | Konva.Container> = {
+	onCreate?: (entity: T) => void;
+} & ConfigType<T> & EventsType<T>;
 function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(config: ConfigType<T>): T }):
 	T extends Konva.Container ? ParentComponent<ConfigType<T> & EventsType<T>> : VoidComponent<ConfigType<T> & EventsType<T>> {
 	const Entity: Component<ConfigType<T> & EventsType<T>> = props => {
@@ -113,6 +122,7 @@ function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(conf
 				groupContext.group.add(entity);
 			else if (layerContext)
 				layerContext.layer.add(entity);
+			props.onCreate?.(entity as T);
 		});
 		createEffect(() => entity.setAttrs(props));
 		let prevProps: undefined | typeof props = undefined;
