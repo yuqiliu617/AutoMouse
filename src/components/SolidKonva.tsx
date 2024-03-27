@@ -42,24 +42,24 @@ export type StageProps = Omit<StageConfig, "container"> & {
 	onCreate?: (stage: Konva.Stage) => void;
 };
 export const Stage: ParentComponent<StageProps> = props => {
-	const [divProps, stageProps] = splitProps(props, ["containerProps"]);
+	const [localProps, stageConfig] = splitProps(props, ["autoSize", "containerProps", "onCreate", "children"]);
 	const [container, setContainer] = createSignal<HTMLDivElement>();
 	const [stage, setStage] = createSignal<Konva.Stage>();
-	const size = props.autoSize
+	const size = localProps.autoSize
 		? createElementSize(container)
-		: { width: stageProps.width, height: stageProps.height };
+		: { width: stageConfig.width, height: stageConfig.height };
 
 	onMount(() => {
 		const stage = new Konva.Stage({
 			height: size.width!,
 			width: size.height!,
 			container: container()!,
-			...stageProps,
+			...stageConfig,
 		});
 		setStage(stage);
-		props.onCreate?.(stage);
+		localProps.onCreate?.(stage);
 	});
-	if (props.autoSize)
+	if (localProps.autoSize)
 		createEffect(() => stage()?.setAttrs({
 			width: size.width,
 			height: size.height,
@@ -68,9 +68,9 @@ export const Stage: ParentComponent<StageProps> = props => {
 
 	const context: { stage?: Konva.Stage } = {};
 	Object.defineProperty(context, "stage", { get: stage, set: setStage });
-	return <div ref={setContainer} {...divProps.containerProps}>
+	return <div ref={setContainer} {...localProps.containerProps}>
 		<StageContext.Provider value={context}>
-			{props.children}
+			{localProps.children}
 		</StageContext.Provider>
 	</div>;
 }
@@ -81,18 +81,20 @@ export type LayerProps = LayerConfig & {
 	onCreate?: (layer: Konva.Layer) => void;
 };
 export const Layer: ParentComponent<LayerProps> = props => {
+	const [localProps, layerConfig] = splitProps(props, ["onCreate", "children"]); // Avoid accessing props.children when creating the layer
 	const stageContext = useStage();
-	const layer = new Konva.Layer({ ...props }); // Avoid recreating layer on every render
+	const layer = new Konva.Layer({ ...layerConfig }); // Avoid recreating layer on every render
 
 	onMount(() => {
 		stageContext?.stage?.add(layer);
-		props.onCreate?.(layer);
+		localProps.onCreate?.(layer);
 	});
+	createEffect(() => layer.setAttrs(layerConfig));
 	onCleanup(() => layer.destroy());
 
 	return <div> {/* Prevent the canvas created by Konva from being removed by SolidJS */}
 		<LayerContext.Provider value={{ layer }}>
-			{props.children}
+			{localProps.children}
 		</LayerContext.Provider>
 	</div>;
 }
@@ -111,29 +113,29 @@ export type ShapeProps<T extends Konva.Shape | Konva.Container = Konva.Shape | K
 	onCreate?: (entity: T) => void;
 } & ConfigType<T> & EventsType<T>;
 function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(config: ConfigType<T>): T }):
-	T extends Konva.Container ? ParentComponent<ConfigType<T> & EventsType<T>> : VoidComponent<ConfigType<T> & EventsType<T>> {
-	const Entity: Component<ConfigType<T> & EventsType<T>> = props => {
-		const layerContext = useLayer()
-		const groupContext = useGroup();
-		const entity = new Shape({ ...props }) as ShapeType | Konva.Group;
+	T extends Konva.Container ? ParentComponent<ShapeProps<T>> : VoidComponent<ShapeProps<T>> {
+	const Entity: Component<ShapeProps<T>> = props => {
+		const [localProps, shapeConfig] = splitProps(props, ["onCreate", "children"]);
+		const layerContext = useLayer(), groupContext = useGroup();
+		const entity = new Shape({ ...shapeConfig as ConfigType<T> }) as ShapeType | Konva.Group;
 
 		onMount(() => {
 			if (groupContext)
 				groupContext.group.add(entity);
 			else if (layerContext)
 				layerContext.layer.add(entity);
-			props.onCreate?.(entity as T);
+			localProps.onCreate?.(entity as T);
 		});
-		createEffect(() => entity.setAttrs(props));
-		let prevProps: undefined | typeof props = undefined;
+		createEffect(() => entity.setAttrs(shapeConfig));
+		let prevConfig: typeof shapeConfig | undefined = undefined;
 		createEffect(() => {
-			if (prevProps) {
-				for (const key in prevProps) {
+			if (prevConfig) {
+				for (const key in prevConfig) {
 					if (propsToSkip.includes(key) || key.startsWith("unstable_"))
 						continue;
-					if (key.startsWith("on") && prevProps[key] !== props[key]) {
+					if (key.startsWith("on") && prevConfig[key] !== props[key]) {
 						const eventName = getEventName(key);
-						entity.off(eventName, prevProps[key]);
+						entity.off(eventName, prevConfig[key]);
 					}
 					if (!props.hasOwnProperty(key))
 						entity.setAttr(key, undefined);
@@ -143,20 +145,20 @@ function createEntity<T extends Konva.Shape | Konva.Container>(Shape: { new(conf
 			for (const key in props) {
 				if (propsToSkip.includes(key) || key.startsWith("unstable_"))
 					continue;
-				if (key.startsWith("on") && prevProps?.[key] !== props[key]) {
+				if (key.startsWith("on") && prevConfig?.[key] !== props[key]) {
 					const eventName = getEventName(key);
 					if (props[key])
 						newEvents.set(eventName, props[key]);
 				}
 			}
 			newEvents.forEach((value, key) => entity.on(key, value));
-			prevProps = props;
+			prevConfig = shapeConfig;
 		});
 		onCleanup(() => entity.destroy());
 
 		return entity instanceof Konva.Group
 			? <GroupContext.Provider value={{ group: entity }}>
-				{props.children}
+				{localProps.children}
 			</GroupContext.Provider>
 			: <></>;
 	}
