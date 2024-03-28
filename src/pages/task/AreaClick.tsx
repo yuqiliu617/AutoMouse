@@ -149,8 +149,6 @@ const AreaClick: Component = () => {
 				});
 			});
 			const commonProps: ShapeProps = {
-				get x() { return state.btnX },
-				get y() { return state.btnY },
 				get fill() { return props.config.color },
 				onClick: () => refreshPosition(props.config.diff),
 				onCreate: node => btnRef = node
@@ -172,12 +170,16 @@ const AreaClick: Component = () => {
 							{...commonProps}
 							sides={3}
 							radius={props.config.size / 2}
+							x={state.btnX + props.config.size / 2}
+							y={state.btnY + props.config.size / 2}
 						/>
 					</Match>
 					<Match when={props.config.shape == "circle"}>
 						<Circle
 							{...commonProps}
 							radius={props.config.size / 2}
+							x={state.btnX + props.config.size / 2}
+							y={state.btnY + props.config.size / 2}
 						/>
 					</Match>
 					<Match when={props.config.shape == "square"}>
@@ -186,6 +188,8 @@ const AreaClick: Component = () => {
 							width={props.config.size}
 							height={props.config.size}
 							cornerRadius={props.config.size / 10}
+							x={state.btnX}
+							y={state.btnY}
 						/>
 					</Match>
 				</Switch>
