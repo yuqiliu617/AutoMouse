@@ -16,6 +16,15 @@ const routes: (RouteDefinition<string | string[]> & { menu?: string })[] = [
 		menu: "About",
 		path: "/about",
 		component: lazy(() => import("./pages/About"))
+	},
+	{
+		path: "/task",
+		children: [
+			{
+				path: "/area-click",
+				component: lazy(() => import("./pages/task/AreaClick"))
+			}
+		]
 	}
 ];
 
