@@ -17,6 +17,9 @@ dependencies:
   '@suid/material':
     specifier: ^0.16.0
     version: 0.16.0(solid-js@1.8.16)
+  basic-type-extensions:
+    specifier: ^4.4.0
+    version: 4.4.0
   konva:
     specifier: ^9.3.6
     version: 9.3.6
@@ -31,6 +34,9 @@ devDependencies:
   sass:
     specifier: ^1.72.0
     version: 1.72.0
+  type-fest:
+    specifier: ^4.14.0
+    version: 4.14.0
   typescript:
     specifier: ^5.4.3
     version: 5.4.3
@@ -326,6 +332,32 @@ packages:
       '@babel/helper-validator-identifier': 7.22.20
       to-fast-properties: 2.0.0
     dev: true
+
+  /@basic-type-extensions/array-constructor@1.0.2:
+    resolution: {integrity: sha512-FzQYE2BGEYEg3TZ36kfBV2w46aV7MIDtDZvZD8oMLLy/JyQDnaaaiDhVBhD+Sfk8NTNgMYwqsps5J2mwtBG6Uw==}
+    dev: false
+
+  /@basic-type-extensions/array@1.5.0:
+    resolution: {integrity: sha512-5GqKlHJhSvCia84fMCRyJY0IauJ3GKF0P0hJ0pucme4lNnzrKeUrRT+4M/UcFwZnaZ6qRyX1O56l90WkpcKUEw==}
+    dev: false
+
+  /@basic-type-extensions/math@1.1.0:
+    resolution: {integrity: sha512-XOia2Yn8nDHGuoKPrvHSTN+TMdtDeX4rdRCOyDZoHbiqoaZP3uSS6nS/dULUrCDnZJpz9kn4rUW6ub/8/IFKWQ==}
+    dev: false
+
+  /@basic-type-extensions/object-constructor@2.0.0:
+    resolution: {integrity: sha512-/VxLiv0OaGvo45inFzYHbmKOfWoyr1rkV4bdikm1pBjUJ5z/80WuXttDlWjw5JWrkh/0iCjI7KFygY9hY/JCQA==}
+    dependencies:
+      lodash.clonedeep: 4.5.0
+    dev: false
+
+  /@basic-type-extensions/promise-constructor@1.0.2:
+    resolution: {integrity: sha512-sYEUYAflf9e27LnBzTqOjjdy0XzH/DR/GvGPj+g+u4jGRhLmG8pbE9SHoMG6XAEzSOKNWy/2LtoCUG6ywxxk6A==}
+    dev: false
+
+  /@basic-type-extensions/string-constructor@1.0.4:
+    resolution: {integrity: sha512-kfwA0OkBE1suQSL2x76gac6gdUcspVE8pZXJgSsm7NXg/IBsNJHUlsUFSd+JGnp52mipH9GLM/u0blN9e5uxnA==}
+    dev: false
 
   /@esbuild/aix-ppc64@0.20.2:
     resolution: {integrity: sha512-D+EBOJHXdNZcLJRBkhENNG8Wji2kgc9AZ9KiPr1JuZjsNtyHzrsfLRrY0tk2H2aoFu6RANO1y1iPPUCDYWkb5g==}
@@ -928,6 +960,17 @@ packages:
       babel-plugin-jsx-dom-expressions: 0.37.8(@babel/core@7.23.9)
     dev: true
 
+  /basic-type-extensions@4.4.0:
+    resolution: {integrity: sha512-0jaPllqVMq5zAaWPbshYz23ZANBvcLj/cQE4YCryeP49sFNJ9GZG+Pb14n4whWgyu8EtVVnwcrCNHhMXvEmbXA==}
+    dependencies:
+      '@basic-type-extensions/array': 1.5.0
+      '@basic-type-extensions/array-constructor': 1.0.2
+      '@basic-type-extensions/math': 1.1.0
+      '@basic-type-extensions/object-constructor': 2.0.0
+      '@basic-type-extensions/promise-constructor': 1.0.2
+      '@basic-type-extensions/string-constructor': 1.0.4
+    dev: false
+
   /binary-extensions@2.2.0:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
@@ -1156,6 +1199,10 @@ packages:
     resolution: {integrity: sha512-dqR8EbcM0hjuilZCBP6xauQ5V3kH3m9kBcsDkqPypQuRgsXbcXUrxqYxhNbdvKZpYNW8Amq94jAD/C0NY3qfBQ==}
     dev: false
 
+  /lodash.clonedeep@4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
+    dev: false
+
   /lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
     dependencies:
@@ -1308,6 +1355,11 @@ packages:
     engines: {node: '>=8.0'}
     dependencies:
       is-number: 7.0.0
+    dev: true
+
+  /type-fest@4.14.0:
+    resolution: {integrity: sha512-on5/Cw89wwqGZQu+yWO0gGMGu8VNxsaW9SB2HE8yJjllEk7IDTwnSN1dUVldYILhYPN5HzD7WAaw2cc/jBfn0Q==}
+    engines: {node: '>=16'}
     dev: true
 
   /typescript@5.4.3:
