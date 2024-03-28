@@ -1,8 +1,8 @@
 import { createSignal, SignalOptions } from "solid-js";
 
-import type { Assert } from "./types";
+const resetSymbol = Symbol("reset");
 
-type StateOptions<T extends object> = {
+export type StateOptions<T extends object> = {
 	[key in keyof T]?: SignalOptions<T[key]>;
 };
 
@@ -12,15 +12,26 @@ export default function createState<T extends object = object>(initial: T, optio
 		const [get, set] = createSignal(initial[key], options?.[key]);
 		Object.defineProperty(state, key, { get, set, enumerable: true });
 	}
+	Object.defineProperty(state, resetSymbol, {
+		value: () => {
+			for (const key in state)
+				state[key] = initial[key];
+		},
+		writable: false
+	});
 	return state;
 }
 
-type StateOptionsDeep<T extends object> = {
-	[key in keyof T]?: Assert<T[key]> extends object ? StateOptionsDeep<Assert<T[key]>> : SignalOptions<T[key]>;
+export type StateDeep<T extends object = object> = {
+	[K in keyof T]: T[K] extends object ? StateDeep<T[K]> : T[K];
 };
 
-export function createStateDeep<T extends object = object>(initial: T, options?: StateOptionsDeep<T>): T {
-	const state = {} as T;
+export type StateOptionsDeep<T extends object> = {
+	[K in keyof T]?: T[K] extends object ? StateOptionsDeep<T[K]> : SignalOptions<T[K]>;
+};
+
+export function createStateDeep<T extends object = object>(initial: T, options?: StateOptionsDeep<T>): StateDeep<T> {
+	const state = {} as StateDeep<T>;
 	for (const key in initial) {
 		const value = initial[key];
 		if (typeof value === "object" && value !== null) {
@@ -32,5 +43,21 @@ export function createStateDeep<T extends object = object>(initial: T, options?:
 			Object.defineProperty(state, key, { get, set, enumerable: true });
 		}
 	}
+	Object.defineProperty(state, resetSymbol, {
+		value: () => {
+			for (const key in state) {
+				const value = state[key];
+				if (typeof value === "object" && value !== null)
+					(value as any)[resetSymbol]();
+				else
+					state[key] = initial[key];
+			}
+		},
+		writable: false
+	});
 	return state;
+}
+
+export function resetState<T extends object = object>(state: T) {
+	(state as any)[resetSymbol]?.();
 }
