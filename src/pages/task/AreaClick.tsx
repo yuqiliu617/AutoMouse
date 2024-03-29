@@ -1,33 +1,40 @@
 import FormControl from "@suid/material/FormControl";
+import InputAdornment from "@suid/material/InputAdornment";
 import InputLabel from "@suid/material/InputLabel";
 import MenuItem from "@suid/material/MenuItem";
 import TextField from "@suid/material/TextField";
-import Select, { SelectChangeEvent } from "@suid/material/Select";
+import ToggleButtonGroup from "@suid/material/ToggleButtonGroup";
+import ToggleButton from "@suid/material/ToggleButton";
+import Select from "@suid/material/Select";
 import "basic-type-extensions";
 import Konva from "konva";
-import { createSignal, Switch, Match, onMount, type Component } from "solid-js";
+import { onMount, Show, Switch, Match, type Component } from "solid-js";
 import type { JSX } from "solid-js/jsx-runtime";
 
 import { Rect, Circle, RegularPolygon, Text, type ShapeProps } from "../../components/SolidKonva";
 import createState from "../../utils/createState";
-import type { Assert, Stringify } from "../../utils/types";
+import type { Assert } from "../../utils/types";
 import TaskPage from "./TaskPage";
+
 
 export interface AreaClickConfig {
 	/**
-	 * Duration of the task in seconds. Default is 60.
+	 * Task mode. Default is `"clicks"`.
+	 * @note Under `"time"` mode, the task will last for the specified duration.
+	 * @note Under `"clicks"` mode, the task will last until the user clicks the button a certain number of times.
 	 */
-	duration: number;
+	mode: "time" | "clicks";
 
 	/**
-	 * Number of seconds before the button is removed. Default is 0, which means the button will stay until the user clicks it.
+	 * Under `"time"` mode, the duration of the task in seconds. Default is 60.
+	 * Under `"clicks"` mode, the number of clicks required to complete the task. Default is 10.
 	 */
-	ttl: number;
+	amount: number;
 
 	/**
-	 * Size of the button in pixels. Default is 100.
+	 * Size of the button in pixels. Default is `50`.
 	 */
-	size: number;
+	size: 5 | 20 | 50 | 100;
 
 	/**
 	 * Minimum variation of distance when the button is repositioned. Default is 0.
@@ -48,7 +55,7 @@ export interface AreaClickConfig {
 export type AreaClickEvent = {
 	timestamp: number;
 } & ({
-	type: "btnAppear" | "btnDisappear"
+	type: "btnAppear"
 	x: number;
 	y: number;
 } | {
@@ -59,33 +66,97 @@ export type AreaClickEvent = {
 });
 
 const AreaClick: Component = () => {
+	const state = createState({
+		mode: "clicks" as AreaClickConfig["mode"],
+		size: 50 as AreaClickConfig["size"],
+		shape: "square" as AreaClickConfig["shape"],
+	});
+
 	return <TaskPage<AreaClickConfig, AreaClickEvent>
+		taskName="area-click"
 		transformConfig={formData => {
-			const config = Object.fromEntries(formData.entries()) as Stringify<AreaClickConfig>;
+			const config = Object.fromEntries(formData.entries());
 			return {
-				duration: Number(config.duration),
-				ttl: Number(config.ttl),
-				size: Number(config.size),
+				mode: state.mode,
+				amount: Number(config[state.mode == "time" ? "duration" : "count"]),
+				size: state.size,
 				diff: Number(config.diff),
-				shape: config.shape as AreaClickConfig["shape"],
+				shape: state.shape,
 				color: "gold"
 			};
 		}}
-		ConfigFormControls={() => {
-			const [shape, setShape] = createSignal("square");
+		ConfigFormControls={props => {
+			if (props.defaultConfig) {
+				state.mode = props.defaultConfig.mode;
+				state.size = props.defaultConfig.size;
+				state.shape = props.defaultConfig.shape;
+			}
 			return <>
-				<TextField name="duration" label="Duration" type="number" defaultValue={60} />
-				<TextField name="ttl" label="Time to live" type="number" defaultValue={0} />
-				<TextField name="size" label="Size" type="number" defaultValue={100} />
-				<TextField name="diff" label="Minimum variation" type="number" defaultValue={0} />
+				<ToggleButtonGroup
+					exclusive
+					fullWidth
+					value={state.mode}
+					onChange={(_, value) => state.mode = value}
+				>
+					<ToggleButton value="clicks">
+						Clicks Mode
+					</ToggleButton>
+					<ToggleButton value="time">
+						Time Mode
+					</ToggleButton>
+				</ToggleButtonGroup>
+				<Show
+					when={state.mode == "clicks"}
+					fallback={
+						<TextField
+							name="duration"
+							label="Duration"
+							type="number"
+							defaultValue={props.defaultConfig && props.defaultConfig.mode == "time" ? props.defaultConfig.amount : 30}
+							inputProps={{ min: 5, max: 60 }}
+							InputProps={{ endAdornment: <InputAdornment position="end">s</InputAdornment> }}
+						/>
+					}
+				>
+					<TextField
+						name="count"
+						label="Number of Clicks"
+						type="number"
+						defaultValue={props.defaultConfig && props.defaultConfig.mode == "clicks" ? props.defaultConfig.amount : 20}
+						inputProps={{ min: 5, max: 50 }}
+						InputProps={{ endAdornment: <InputAdornment position="end">click</InputAdornment> }}
+					/>
+				</Show>
+				<FormControl fullWidth>
+					<InputLabel id="size-label">Size</InputLabel>
+					<Select<typeof state.size>
+						name="size"
+						labelId="size-label"
+						label="Size"
+						value={state.size}
+						onChange={e => state.size = e.target.value}
+					>
+						<MenuItem value={5}>Tiny</MenuItem>
+						<MenuItem value={20}>Small</MenuItem>
+						<MenuItem value={50}>Medium</MenuItem>
+						<MenuItem value={100}>Large</MenuItem>
+					</Select>
+				</FormControl>
+				<TextField
+					name="diff"
+					label="Minimum variation"
+					type="number"
+					defaultValue={props.defaultConfig?.diff ?? 0}
+					InputProps={{ endAdornment: <InputAdornment position="end">px</InputAdornment> }}
+				/>
 				<FormControl fullWidth>
 					<InputLabel id="shape-label">Shape</InputLabel>
-					<Select
+					<Select<AreaClickConfig["shape"]>
 						name="shape"
 						labelId="shape-label"
 						label="Shape"
-						value={shape()}
-						onChange={(e: SelectChangeEvent<AreaClickConfig["shape"]>) => setShape(e.target.value)}
+						value={state.shape}
+						onChange={e => state.shape = e.target.value}
 					>
 						<MenuItem value="triangle">Triangle</MenuItem>
 						<MenuItem value="circle">Circle</MenuItem>
@@ -96,7 +167,7 @@ const AreaClick: Component = () => {
 		}}
 		TaskProcedure={props => {
 			const state = createState({
-				remainingTime: props.config.duration,
+				remainingAmount: props.config.amount,
 				btnX: -1,
 				btnY: -1
 			});
@@ -119,8 +190,8 @@ const AreaClick: Component = () => {
 					do {
 						len = Math.randomFloat(minVariation, maxVariation);
 						rad = Math.randomFloat(0, Math.PI * 2);
-						x = state.btnX + len * Math.cos(rad);
-						y = state.btnY + len * Math.sin(rad);
+						x = state.btnX + Math.round(len * Math.cos(rad));
+						y = state.btnY + Math.round(len * Math.sin(rad));
 					} while (x < 0 || x > w || y < 0 || y > h);
 				}
 				state.btnX = x;
@@ -129,14 +200,16 @@ const AreaClick: Component = () => {
 			}
 			let btnRef: Konva.Node;
 			onMount(() => {
-				const timer = setInterval(() => {
-					if (state.remainingTime > 0)
-						--state.remainingTime;
-					else {
-						clearInterval(timer);
-						props.onComplete?.(events);
-					}
-				}, 1000);
+				if (props.config.mode == "time") {
+					const timer = setInterval(() => {
+						if (state.remainingAmount > 0)
+							--state.remainingAmount;
+						else {
+							clearInterval(timer);
+							props.onComplete?.(events);
+						}
+					}, 1000);
+				}
 				refreshPosition();
 				props.stage.on("click", e => {
 					events.push({
@@ -150,18 +223,24 @@ const AreaClick: Component = () => {
 			});
 			const commonProps: ShapeProps = {
 				get fill() { return props.config.color },
-				onClick: () => refreshPosition(props.config.diff),
+				onClick() {
+					if (props.config.mode == "clicks" && --state.remainingAmount == 0)
+						setTimeout(() => props.onComplete?.(events));
+					else
+						setTimeout(() => refreshPosition(props.config.diff));
+				},
 				onCreate: node => btnRef = node
 			};
 			return <>
 				<Text
-					text={state.remainingTime.toString() + " s"}
+					text={`${state.remainingAmount} ${props.config.mode == "clicks" ? "clicks" : "s"}`}
 					fontSize={24}
 					fill={props.config.color}
 					x={0}
-					y={16}
+					y={0}
+					padding={16}
 					width={props.stage.width()}
-					align="center"
+					align="right"
 					verticalAlign="center"
 				/>
 				<Switch>
