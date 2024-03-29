@@ -3,9 +3,12 @@ import ButtonGroup from "@suid/material/ButtonGroup";
 import Checkbox from "@suid/material/Checkbox";
 import FormGroup from "@suid/material/FormGroup";
 import FormControlLabel from "@suid/material/FormControlLabel";
+import InputAdornment from "@suid/material/InputAdornment";
 import Paper from "@suid/material/Paper";
 import Stack from "@suid/material/Stack";
 import TextField from "@suid/material/TextField";
+import ToggleButtonGroup from "@suid/material/ToggleButtonGroup";
+import ToggleButton from "@suid/material/ToggleButton";
 import Typography from "@suid/material/Typography";
 import "basic-type-extensions";
 import Konva from "konva";
@@ -19,6 +22,13 @@ import createState, { resetState } from "../../utils/createState";
 
 export type MouseMotionRecord = [timestamp: number, x: number, y: number];
 
+export interface MouseInfo {
+	brand?: string;
+	model?: string;
+	leftHanded?: boolean;
+	dpi: number;
+}
+
 export interface TaskEvent {
 	timestamp: number;
 }
@@ -31,8 +41,9 @@ export interface TaskResult<TConfig extends object, TEvent extends TaskEvent> {
 }
 
 export interface TaskPageProps<TConfig extends object, TEvent extends TaskEvent> {
+	taskName: string;
 	transformConfig: (formData: FormData) => TConfig;
-	ConfigFormControls: VoidComponent;
+	ConfigFormControls: VoidComponent<{ defaultConfig?: Readonly<TConfig> }>;
 	TaskProcedure: VoidComponent<{
 		stage: Konva.Stage;
 		config: Readonly<TConfig>;
@@ -46,7 +57,9 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 	const result = {} as TaskResult<TConfig, TEvent>;
 	const state = createState({
 		phase: 0 as 0 | 1 | 2,
+		defaultConfig: undefined as TConfig | undefined,
 		config: undefined as Readonly<TConfig> | undefined,
+		saveConfig: true
 	});
 	const taskState = createState({
 		stage: undefined as Konva.Stage | undefined,
@@ -56,10 +69,17 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 	});
 	const resultState = createState({
 		upload: true,
-		save: true
+		hand: "right" as "left" | "right",
+		defaultMouseInfo: undefined as MouseInfo | undefined
 	});
 
 	const size = {} as Readonly<Record<"width" | "height", number>>;
+	let storageItem = localStorage.getItem(`${props.taskName}.config`);
+	if (storageItem != null)
+		state.defaultConfig = JSON.parse(storageItem);
+	storageItem = localStorage.getItem("mouse-info");
+	if (storageItem != null)
+		resultState.defaultMouseInfo = JSON.parse(storageItem);
 	createEffect(() => {
 		if (taskState.stage == undefined || taskState.initialized)
 			return;
@@ -67,11 +87,13 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 			width: { get: () => taskState.stage!.width(), configurable: true },
 			height: { get: () => taskState.stage!.height(), configurable: true }
 		});
-		const timer = setInterval(() => {
-			if (taskState.countdown == 0)
-				clearInterval(timer);
-			--taskState.countdown;
-		}, 1000);
+		if (taskState.countdown != -1) {
+			const timer = setInterval(() => {
+				if (taskState.countdown == 0)
+					clearInterval(timer);
+				--taskState.countdown;
+			}, 1000);
+		}
 		taskState.initialized = true;
 	});
 	createEffect(() => {
@@ -96,21 +118,42 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 				<Paper elevation={4}>
 					<Stack
 						spacing={2}
-						padding={2}
+						padding={3}
 						component="form"
 						sx={{ width: 384 }}
 						onSubmit={e => {
 							e.preventDefault();
+							const skipCountdown = (e.submitter as HTMLInputElement).name == "startImmediately";
 							const formData = new FormData(e.currentTarget);
 							const config = Object.freeze(props.transformConfig(formData));
 							state.config = result.config = config;
+							if (state.saveConfig) {
+								state.defaultConfig = config;
+								localStorage.setItem(`${props.taskName}.config`, JSON.stringify(config));
+							}
+							if (skipCountdown)
+								taskState.countdown = -1;
 							state.phase = 1;
 						}}
 					>
-						<props.ConfigFormControls />
-						<Button type="submit" variant="contained">
-							Start
-						</Button>
+						<props.ConfigFormControls defaultConfig={state.defaultConfig} />
+						<FormGroup>
+							<FormControlLabel
+								control={<Checkbox
+									checked={state.saveConfig}
+									onChange={(_, checked) => state.saveConfig = checked}
+								/>}
+								label="Save config for later use"
+							/>
+						</FormGroup>
+						<ButtonGroup variant="contained" fullWidth>
+							<Button type="submit" name="start">
+								Start
+							</Button>
+							<Button type="submit" name="startImmediately">
+								Start Immediately
+							</Button>
+						</ButtonGroup>
 					</Stack>
 				</Paper>
 			</Match>
@@ -155,16 +198,24 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 				<Paper elevation={4}>
 					<Stack
 						spacing={2}
-						padding={2}
+						padding={3}
 						component="form"
 						sx={{ width: 384 }}
 						onSubmit={e => {
 							e.preventDefault();
-							console.log(`Events: ${result.events.length}, Motion: ${result.motion.length}`);
 							const formData = new FormData(e.currentTarget);
-							if (formData.get("upload") == "on") {
-							}
+							const mouseInfo: MouseInfo = {
+								brand: formData.get("brand") as string,
+								model: formData.get("model") as string,
+								dpi: Number(formData.get("dpi")),
+								leftHanded: resultState.hand == "left"
+							};
 							if (formData.get("save") == "on") {
+								resultState.defaultMouseInfo = mouseInfo;
+								localStorage.setItem("mouse-info", JSON.stringify(mouseInfo));
+							}
+							if (resultState.upload) {
+								// TODO: Upload result
 							}
 							switch ((e.submitter as HTMLInputElement).name) {
 								case "record-again":
@@ -181,28 +232,54 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 							}
 						}}
 					>
-						<Typography variant="h4">
+						<Typography variant="h4" align="center" fontSize={24}>
 							Results
 						</Typography>
 						<Show when={props.ResultControls != undefined}>
 							{/* @ts-expect-error */}
 							<props.ResultControls {...result} />
 						</Show>
-						<TextField name="mouseModel" label="Mouse Model" />
-						<TextField name="dpi" label="Mouse DPI" type="number" required={resultState.upload} />
+						<TextField
+							name="brand"
+							label="Mouse Brand"
+							defaultValue={resultState.defaultMouseInfo?.brand}
+						/>
+						<TextField
+							name="model"
+							label="Mouse Model"
+							defaultValue={resultState.defaultMouseInfo?.model}
+						/>
+						<TextField
+							name="dpi"
+							label="Mouse Sensitivity (DPI)"
+							type="number"
+							required={resultState.upload}
+							defaultValue={resultState.defaultMouseInfo?.dpi}
+							InputProps={{ endAdornment: <InputAdornment position="end">dot/inch</InputAdornment> }}
+						/>
+						<ToggleButtonGroup
+							exclusive
+							fullWidth
+							value={resultState.hand}
+							onChange={(_, value) => resultState.hand = value}
+						>
+							<ToggleButton value="left">
+								Left Hand
+							</ToggleButton>
+							<ToggleButton value="right">
+								Right Hand
+							</ToggleButton>
+						</ToggleButtonGroup>
 						<FormGroup>
 							<FormControlLabel
-								control={<Checkbox
-									checked={resultState.save}
-									onChange={e => resultState.save = !e.target.checked}
-								/>}
+								control={<Checkbox defaultChecked />}
 								name="save"
 								label="Save mouse info for later use"
 							/>
 							<FormControlLabel
 								control={<Checkbox
 									checked={resultState.upload}
-									onChange={e => resultState.upload = !e.target.checked}
+									onChange={(_, checked) => resultState.upload = checked}
 								/>}
 								name="upload"
 								label="Upload result"
