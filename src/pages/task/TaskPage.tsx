@@ -34,10 +34,12 @@ export interface TaskEvent {
 }
 
 export interface TaskResult<TConfig extends object, TEvent extends TaskEvent> {
+	taskName: string;
 	dimention: [width: number, height: number];
 	config: Readonly<TConfig>;
 	events: TEvent[];
 	motion: MouseMotionRecord[];
+	mouseInfo: MouseInfo;
 }
 
 export interface TaskPageProps<TConfig extends object, TEvent extends TaskEvent> {
@@ -50,11 +52,13 @@ export interface TaskPageProps<TConfig extends object, TEvent extends TaskEvent>
 		getTimestamp: () => number;
 		onComplete: (events: TEvent[]) => void;
 	}>;
-	ResultControls?: VoidComponent<ReadonlyDeep<TaskResult<TConfig, TEvent>>>;
+	ResultControls?: VoidComponent<ReadonlyDeep<Omit<TaskResult<TConfig, TEvent>, "mouseInfo">>>;
 }
 
 function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: ParentProps<TaskPageProps<TConfig, TEvent>>): JSX.Element {
-	const result = {} as TaskResult<TConfig, TEvent>;
+	const result = {
+		taskName: props.taskName
+	} as TaskResult<TConfig, TEvent>;
 	const state = createState({
 		phase: 0 as 0 | 1 | 2,
 		defaultConfig: undefined as TConfig | undefined,
@@ -80,12 +84,13 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 	storageItem = localStorage.getItem("mouse-info");
 	if (storageItem != null)
 		resultState.defaultMouseInfo = JSON.parse(storageItem);
+	const getTimestamp = () => Math.roundTo(performance.now() - taskState.startTime, 1);
 	createEffect(() => {
 		if (taskState.stage == undefined || taskState.initialized)
 			return;
 		Object.defineProperties(size, {
-			width: { get: () => taskState.stage!.width(), configurable: true },
-			height: { get: () => taskState.stage!.height(), configurable: true }
+			width: { get: () => Math.roundTo(taskState.stage!.width(), 1), configurable: true },
+			height: { get: () => Math.roundTo(taskState.stage!.height(), 1), configurable: true }
 		});
 		if (taskState.countdown != -1) {
 			const timer = setInterval(() => {
@@ -104,7 +109,7 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 		taskState.stage.on("mousemove", ({ evt: { offsetX, offsetY } }) => {
 			const lastRecord = result.motion.last();
 			if (!lastRecord || lastRecord[1] != offsetX || lastRecord[2] != offsetY)
-				result.motion.push([performance.now() - taskState.startTime, offsetX, offsetY]);
+				result.motion.push([getTimestamp(), offsetX, offsetY]);
 		});
 	});
 
@@ -182,7 +187,7 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 								<props.TaskProcedure
 									stage={taskState.stage!}
 									config={state.config!}
-									getTimestamp={() => performance.now() - taskState.startTime}
+									getTimestamp={getTimestamp}
 									onComplete={events => {
 										state.phase = 2;
 										result.events = events;
@@ -204,15 +209,15 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 						onSubmit={e => {
 							e.preventDefault();
 							const formData = new FormData(e.currentTarget);
-							const mouseInfo: MouseInfo = {
+							result.mouseInfo = {
 								brand: formData.get("brand") as string,
 								model: formData.get("model") as string,
 								dpi: Number(formData.get("dpi")),
 								leftHanded: resultState.hand == "left"
 							};
 							if (formData.get("save") == "on") {
-								resultState.defaultMouseInfo = mouseInfo;
-								localStorage.setItem("mouse-info", JSON.stringify(mouseInfo));
+								resultState.defaultMouseInfo = result.mouseInfo;
+								localStorage.setItem("mouse-info", JSON.stringify(result.mouseInfo));
 							}
 							if (resultState.upload) {
 								// TODO: Upload result
