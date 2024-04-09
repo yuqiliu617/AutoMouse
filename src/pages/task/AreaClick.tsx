@@ -72,6 +72,7 @@ const AreaClick: Component = () => {
 
 	return <TaskPage<AreaClickConfig, AreaClickEvent>
 		taskName="area-click"
+		countdown={3}
 		transformConfig={formData => {
 			const config = Object.fromEntries(formData.entries());
 			return {

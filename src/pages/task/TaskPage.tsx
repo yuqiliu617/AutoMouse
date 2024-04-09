@@ -44,6 +44,7 @@ export interface TaskResult<TConfig extends object, TEvent extends TaskEvent> {
 
 export interface TaskPageProps<TConfig extends object, TEvent extends TaskEvent> {
 	taskName: string;
+	countdown?: number;
 	transformConfig: (formData: FormData) => TConfig;
 	ConfigFormControls: VoidComponent<{ defaultConfig?: Readonly<TConfig> }>;
 	TaskProcedure: VoidComponent<{
@@ -68,7 +69,7 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 	const taskState = createState({
 		stage: undefined as Konva.Stage | undefined,
 		initialized: false,
-		countdown: 3,
+		countdown: props.countdown ?? -1,
 		startTime: -1
 	});
 	const resultState = createState({
@@ -151,6 +152,10 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 								label="Save config for later use"
 							/>
 						</FormGroup>
+						<Show
+							when={props.countdown != undefined}
+							fallback={<Button variant="contained" type="submit" name="start">Start</Button>}
+						>
 						<ButtonGroup variant="contained" fullWidth>
 							<Button type="submit" name="start">
 								Start
@@ -159,6 +164,7 @@ function TaskPage<TConfig extends object, TEvent extends TaskEvent>(props: Paren
 								Start Immediately
 							</Button>
 						</ButtonGroup>
+						</Show>
 					</Stack>
 				</Paper>
 			</Match>
