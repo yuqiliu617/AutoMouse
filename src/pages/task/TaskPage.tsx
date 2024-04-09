@@ -33,13 +33,25 @@ export interface TaskEvent {
 	timestamp: number;
 }
 
-export interface TaskResult<TConfig extends object, TEvent extends TaskEvent> {
+export interface TaskResult<TConfig extends object = object, TEvent extends TaskEvent = TaskEvent> {
 	taskName: string;
 	dimention: [width: number, height: number];
 	config: Readonly<TConfig>;
 	events: TEvent[];
 	motion: MouseMotionRecord[];
 	mouseInfo: MouseInfo;
+}
+
+export function isTaskResult(value: unknown): value is TaskResult {
+	if (typeof value != "object" || value == null)
+		return false;
+	const result = value as TaskResult;
+	return typeof result.taskName == "string" &&
+		Array.isArray(result.dimention) && result.dimention.length == 2 &&
+		typeof result.config == "object" &&
+		Array.isArray(result.events) && result.events.every(event => typeof event.timestamp == "number") &&
+		Array.isArray(result.motion) && result.motion.every(record => Array.isArray(record) && record.length == 3) &&
+		typeof result.mouseInfo == "object" && result.mouseInfo != null && typeof result.mouseInfo.dpi == "number";
 }
 
 export interface TaskPageProps<TConfig extends object, TEvent extends TaskEvent> {

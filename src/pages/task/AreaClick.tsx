@@ -14,7 +14,7 @@ import type { JSX } from "solid-js/jsx-runtime";
 import { Rect, Circle, RegularPolygon, Text, type ShapeProps } from "../../components/SolidKonva";
 import createState from "../../utils/createState";
 import type { Assert } from "../../utils/types";
-import TaskPage from "./TaskPage";
+import TaskPage, { isTaskResult, type TaskEvent, type TaskResult } from "./TaskPage";
 
 
 export interface AreaClickConfig {
@@ -62,6 +62,27 @@ export type AreaClickEvent = TaskEvent & ({
 	y: number;
 	onButton: boolean;
 });
+
+export type AreaClickResult = TaskResult<AreaClickConfig, AreaClickEvent>;
+
+export function isAreaClickResult(value: unknown): value is AreaClickResult {
+	if (!isTaskResult(value) || value.taskName != "area-click")
+		return false;
+	const config = value.config as AreaClickConfig;
+	const events = value.events as AreaClickEvent[];
+	return events.every(e => {
+		return typeof e.x == "number" &&
+			typeof e.y == "number" &&
+			(e.type == "btnAppear" || (e.type == "mouseDown" || e.type == "mouseUp") && typeof e.onButton == "boolean");
+	}) && (
+			(config.mode === "time" || config.mode === "clicks") &&
+			typeof config.amount == "number" &&
+			typeof config.size == "number" &&
+			typeof config.diff == "number" &&
+			(config.shape == "triangle" || config.shape == "circle" || config.shape == "square") &&
+			typeof config.color == "string"
+		);
+}
 
 const AreaClick: Component = () => {
 	const state = createState({
