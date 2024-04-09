@@ -8,7 +8,7 @@ import ToggleButton from "@suid/material/ToggleButton";
 import Select from "@suid/material/Select";
 import "basic-type-extensions";
 import Konva from "konva";
-import { onMount, Show, Switch, Match, type Component } from "solid-js";
+import { createMemo, onMount, Show, Switch, Match, type Component } from "solid-js";
 import type { JSX } from "solid-js/jsx-runtime";
 
 import { Rect, Circle, RegularPolygon, Text, type ShapeProps } from "../../components/SolidKonva";
@@ -192,19 +192,22 @@ const AreaClick: Component = () => {
 				btnY: -1
 			});
 			const events = new Array<AreaClickEvent>();
+			const radius = createMemo(() => props.config.size / 2);
 			function refreshPosition(minVariation?: number, maxVariation?: number) {
 				minVariation ??= 0;
 				let x: number, y: number;
+				const w = props.stage.width(), h = props.stage.height();
 				if (minVariation <= 0 && maxVariation == undefined || state.btnX == -1 || state.btnY == -1) {
-					x = Math.randomInteger(0, props.stage.width() - props.config.size);
-					y = Math.randomInteger(0, props.stage.height() - props.config.size);
+					x = Math.randomInteger(radius(), w - radius());
+					y = Math.randomInteger(radius(), h - radius());
 				}
 				else {
-					const w = props.stage.width() - props.config.size;
-					const h = props.stage.height() - props.config.size;
 					maxVariation = Math.min(
 						maxVariation ?? Infinity,
-						Math.hypot(Math.max(state.btnX, w - state.btnX), Math.max(state.btnY, h - state.btnY))
+						Math.hypot(
+							Math.max(state.btnX - radius(), w - radius() - state.btnX),
+							Math.max(state.btnY - radius(), h - radius() - state.btnY)
+						)
 					);
 					let len!: number, rad!: number;
 					do {
@@ -212,7 +215,7 @@ const AreaClick: Component = () => {
 						rad = Math.randomFloat(0, Math.PI * 2);
 						x = state.btnX + Math.round(len * Math.cos(rad));
 						y = state.btnY + Math.round(len * Math.sin(rad));
-					} while (x < 0 || x > w || y < 0 || y > h);
+					} while (x < radius() || x > w - radius() || y < radius() || y > h - radius());
 				}
 				state.btnX = x;
 				state.btnY = y;
@@ -277,17 +280,17 @@ const AreaClick: Component = () => {
 						<RegularPolygon
 							{...commonProps}
 							sides={3}
-							radius={props.config.size / 2}
-							x={state.btnX + props.config.size / 2}
-							y={state.btnY + props.config.size / 2}
+							radius={radius()}
+							x={state.btnX}
+							y={state.btnY}
 						/>
 					</Match>
 					<Match when={props.config.shape == "circle"}>
 						<Circle
 							{...commonProps}
-							radius={props.config.size / 2}
-							x={state.btnX + props.config.size / 2}
-							y={state.btnY + props.config.size / 2}
+							radius={radius()}
+							x={state.btnX}
+							y={state.btnY}
 						/>
 					</Match>
 					<Match when={props.config.shape == "square"}>
@@ -296,8 +299,8 @@ const AreaClick: Component = () => {
 							width={props.config.size}
 							height={props.config.size}
 							cornerRadius={props.config.size / 10}
-							x={state.btnX}
-							y={state.btnY}
+							x={state.btnX - radius()}
+							y={state.btnY - radius()}
 						/>
 					</Match>
 				</Switch>
