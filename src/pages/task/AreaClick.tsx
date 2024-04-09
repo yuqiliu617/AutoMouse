@@ -52,14 +52,12 @@ export interface AreaClickConfig {
 	color: Assert<JSX.CSSProperties["color"]>;
 }
 
-export type AreaClickEvent = {
-	timestamp: number;
-} & ({
+export type AreaClickEvent = TaskEvent & ({
 	type: "btnAppear"
 	x: number;
 	y: number;
 } | {
-	type: "mouseClick"
+	type: "mouseDown" | "mouseUp";
 	x: number;
 	y: number;
 	onButton: boolean;
@@ -211,10 +209,19 @@ const AreaClick: Component = () => {
 					}, 1000);
 				}
 				refreshPosition();
-				props.stage.on("click", e => {
+				props.stage.on("mousedown", e => {
 					events.push({
 						timestamp: props.getTimestamp(),
-						type: "mouseClick",
+						type: "mouseDown",
+						x: e.evt.offsetX,
+						y: e.evt.offsetY,
+						onButton: e.target == btnRef
+					});
+				});
+				props.stage.on("mouseup", e => {
+					events.push({
+						timestamp: props.getTimestamp(),
+						type: "mouseUp",
 						x: e.evt.offsetX,
 						y: e.evt.offsetY,
 						onButton: e.target == btnRef
