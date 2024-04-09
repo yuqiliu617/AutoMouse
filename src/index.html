@@ -12,6 +12,25 @@
 		<link rel="apple-touch-icon" href="/logo192.png" />
 		<link rel="manifest" href="/manifest.json" />
 		<title>AutoMouse Recorder</title>
+		<style>
+			::-webkit-scrollbar {
+				width: 8px;
+				height: 8px;
+			}
+
+			::-webkit-scrollbar-track {
+				background: #121212;
+			}
+
+			::-webkit-scrollbar-thumb {
+				background: #888;
+				border-radius: 4px;
+			}
+
+			::-webkit-scrollbar-thumb:hover {
+				background: gainsboro;
+			}
+		</style>
 	</head>
 
 	<body>
@@ -19,7 +38,7 @@
 		<div
 			id="root"
 			style="display: flex; flex-direction: column; min-height: 100vh"
-		></div>
+		/>
 		<script src="./index.tsx" type="module"></script>
 	</body>
 </html>
