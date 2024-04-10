@@ -1,15 +1,19 @@
-const puppeteer = require('puppeteer')
-const fs = require('fs').promises
-const Jimp = require('jimp')
-const pixelmatch = require('pixelmatch')
-const { cv } = require('opencv-wasm')
+import puppeteer, { type Page } from "puppeteer";
+import Jimp from "jimp";
+import pixelmatch from "pixelmatch";
+import { cv } from "opencv-wasm";
 
-async function findPuzzlePosition(page) {
-	let images = await page.$$eval('.geetest_canvas_img canvas', canvases => canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, '')))
+import fs from "fs/promises";
 
-	await fs.writeFile(`./puzzle.png`, images[1], 'base64')
 
-	let srcPuzzleImage = await Jimp.read('./puzzle.png')
+async function findPuzzlePosition(page: Page) {
+	const images = await page.$$eval(
+		".geetest_canvas_img canvas",
+		canvases => canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, ""))
+	)
+	await fs.writeFile(`./puzzle.png`, images[1], "base64")
+
+	let srcPuzzleImage = await Jimp.read("./puzzle.png")
 	let srcPuzzle = cv.matFromImageData(srcPuzzleImage.bitmap)
 	let dstPuzzle = new cv.Mat()
 
@@ -31,10 +35,10 @@ async function findPuzzlePosition(page) {
 	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)]
 }
 
-async function findDiffPosition(page) {
+async function findDiffPosition(page: Page) {
 	await new Promise(r => setTimeout(r, 100))
 
-	let srcImage = await Jimp.read('./diff.png')
+	let srcImage = await Jimp.read("./diff.png")
 	let src = cv.matFromImageData(srcImage.bitmap)
 
 	let dst = new cv.Mat()
@@ -60,28 +64,28 @@ async function findDiffPosition(page) {
 	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)]
 }
 
-async function saveSliderCaptchaImages(page) {
-	await page.waitForSelector('.tab-item.tab-item-1')
-	await page.click('.tab-item.tab-item-1')
+async function saveSliderCaptchaImages(page: Page) {
+	await page.waitForSelector(".tab-item.tab-item-1")
+	await page.click(".tab-item.tab-item-1")
 
 	await page.waitForSelector('[aria-label="Click to verify"]')
 	await new Promise(r => setTimeout(r, 1000))
 
 	await page.click('[aria-label="Click to verify"]')
 
-	await page.waitForSelector('.geetest_canvas_img canvas', { visible: true })
+	await page.waitForSelector(".geetest_canvas_img canvas", { visible: true })
 	await new Promise(r => setTimeout(r, 1000))
-	let images = await page.$$eval('.geetest_canvas_img canvas', canvases => {
-		return canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, ''))
+	let images = await page.$$eval(".geetest_canvas_img canvas", canvases => {
+		return canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, ""))
 	})
 
-	await fs.writeFile(`./captcha.png`, images[0], 'base64')
-	await fs.writeFile(`./original.png`, images[2], 'base64')
+	await fs.writeFile(`./captcha.png`, images[0], "base64")
+	await fs.writeFile(`./original.png`, images[2], "base64")
 }
 
 async function saveDiffImage() {
-	const originalImage = await Jimp.read('./original.png')
-	const captchaImage = await Jimp.read('./captcha.png')
+	const originalImage = await Jimp.read("./original.png")
+	const captchaImage = await Jimp.read("./captcha.png")
 
 	const { width, height } = originalImage.bitmap
 	const diffImage = new Jimp(width, height)
@@ -89,7 +93,7 @@ async function saveDiffImage() {
 	const diffOptions = { includeAA: true, threshold: 0.2 }
 
 	pixelmatch(originalImage.bitmap.data, captchaImage.bitmap.data, diffImage.bitmap.data, width, height, diffOptions)
-	diffImage.write('./diff.png')
+	diffImage.write("./diff.png")
 }
 
 async function run() {
@@ -99,7 +103,7 @@ async function run() {
 	})
 	const page = await browser.newPage()
 
-	await page.goto('https://www.geetest.com/en/demo', { waitUntil: 'networkidle2' })
+	await page.goto("https://www.geetest.com/en/demo", { waitUntil: "networkidle2" })
 
 	await new Promise(r => setTimeout(r, 1000))
 
@@ -108,8 +112,8 @@ async function run() {
 
 	let [cx, cy] = await findDiffPosition(page)
 
-	const sliderHandle = await page.$('.geetest_slider_button')
-	const handle = await sliderHandle.boundingBox()
+	const sliderHandle = (await page.$(".geetest_slider_button"))!
+	const handle = (await sliderHandle.boundingBox())!
 
 	let xPosition = handle.x + handle.width / 2
 	let yPosition = handle.y + handle.height / 2
@@ -131,10 +135,10 @@ async function run() {
 
 	await new Promise(r => setTimeout(r, 3000))
 
-	await fs.unlink('./original.png')
-	await fs.unlink('./captcha.png')
-	await fs.unlink('./diff.png')
-	await fs.unlink('./puzzle.png')
+	await fs.unlink("./original.png")
+	await fs.unlink("./captcha.png")
+	await fs.unlink("./diff.png")
+	await fs.unlink("./puzzle.png")
 
 	await browser.close()
 }

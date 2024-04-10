@@ -2,15 +2,9 @@
 	"name": "geetest-slider-captcha-solver",
 	"version": "0.0.1",
 	"description": "GeeTest Puppeteer crawler",
-	"main": "index.js",
-	"dependencies": {
-		"puppeteer": "22.6.3",
-		"pixelmatch": "5.3.0",
-		"jimp": "0.22.12",
-		"opencv-wasm": "4.3.0-10"
-	},
+	"type": "module",
 	"scripts": {
-		"start": "node main.js"
+		"start": "node --loader ts-node/esm src/main.ts"
 	},
 	"repository": {
 		"type": "git",
@@ -21,5 +15,16 @@
 	},
 	"homepage": "https://github.com/fvitas/geetest-slider-captcha-solver#readme",
 	"author": "Filip Vitas",
-	"license": "MIT"
+	"license": "MIT",
+	"dependencies": {
+		"jimp": "0.22.12",
+		"opencv-wasm": "4.3.0-10",
+		"pixelmatch": "5.3.0",
+		"puppeteer": "22.6.3"
+	},
+	"devDependencies": {
+		"@types/pixelmatch": "^5.2.6",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.4.4"
+	}
 }
