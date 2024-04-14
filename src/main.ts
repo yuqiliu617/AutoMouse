@@ -3,47 +3,69 @@ import Jimp from "jimp";
 import pixelmatch from "pixelmatch";
 import { cv } from "opencv-wasm";
 
-import fs from "fs/promises";
 
+type JimpImage = Awaited<ReturnType<typeof Jimp.read>>;
 
-async function findPuzzlePosition(page: Page) {
+async function wait(ms: number) {
+	return new Promise(r => setTimeout(r, ms));
+}
+
+async function prepare(page: Page) {
+	await page.waitForSelector(".tab-item.tab-item-1");
+	await page.click(".tab-item.tab-item-1");
+
+	await page.waitForSelector("[aria-label=\"Click to verify\"]");
+	await wait(500);
+	await page.click("[aria-label=\"Click to verify\"]");
+
+	await page.waitForSelector(".geetest_canvas_img canvas", { visible: true });
+	await wait(1000);
+}
+
+async function getImages(page: Page): Promise<Record<"captcha" | "puzzle" | "original", JimpImage>> {
 	const images = await page.$$eval(
 		".geetest_canvas_img canvas",
 		canvases => canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, ""))
 	);
-	await fs.writeFile(`./puzzle.png`, images[1], "base64");
+	if (images.length !== 3)
+		throw new Error("Expected 3 images, but got " + images.length);
 
-	let srcPuzzleImage = await Jimp.read("./puzzle.png");
-	let srcPuzzle = cv.matFromImageData(srcPuzzleImage.bitmap);
-	let dstPuzzle = new cv.Mat();
+	const jimpImages = await Promise.all(images.map(img => Jimp.read(Buffer.from(img, "base64"))));
+	return {
+		captcha: jimpImages[0],
+		puzzle: jimpImages[1],
+		original: jimpImages[2]
+	};
+}
+
+function findPuzzlePosition(puzzleImg: JimpImage): [x: number, y: number] {
+	const srcPuzzle = cv.matFromImageData(puzzleImg.bitmap);
+	const dstPuzzle = new cv.Mat();
 
 	cv.cvtColor(srcPuzzle, srcPuzzle, cv.COLOR_BGR2GRAY);
 	cv.threshold(srcPuzzle, dstPuzzle, 127, 255, cv.THRESH_BINARY);
 
-	let kernel = cv.Mat.ones(5, 5, cv.CV_8UC1);
-	let anchor = new cv.Point(-1, -1);
+	const kernel = cv.Mat.ones(5, 5, cv.CV_8UC1);
+	const anchor = new cv.Point(-1, -1);
 	cv.dilate(dstPuzzle, dstPuzzle, kernel, anchor, 1);
 	cv.erode(dstPuzzle, dstPuzzle, kernel, anchor, 1);
 
-	let contours = new cv.MatVector();
-	let hierarchy = new cv.Mat();
+	const contours = new cv.MatVector();
+	const hierarchy = new cv.Mat();
 	cv.findContours(dstPuzzle, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-	let contour = contours.get(0);
-	let moment = cv.moments(contour);
+	const contour = contours.get(0);
+	const moment = cv.moments(contour);
 
 	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)];
 }
 
-async function findDiffPosition(page: Page) {
-	await new Promise(r => setTimeout(r, 100));
+function findDiffPosition(diffImage: JimpImage): [x: number, y: number] {
+	const src = cv.matFromImageData(diffImage.bitmap);
 
-	let srcImage = await Jimp.read("./diff.png");
-	let src = cv.matFromImageData(srcImage.bitmap);
-
-	let dst = new cv.Mat();
-	let kernel = cv.Mat.ones(5, 5, cv.CV_8UC1);
-	let anchor = new cv.Point(-1, -1);
+	const dst = new cv.Mat();
+	const kernel = cv.Mat.ones(5, 5, cv.CV_8UC1);
+	const anchor = new cv.Point(-1, -1);
 
 	cv.threshold(src, dst, 127, 255, cv.THRESH_BINARY);
 	cv.erode(dst, dst, kernel, anchor, 1);
@@ -54,63 +76,43 @@ async function findDiffPosition(page: Page) {
 	cv.cvtColor(dst, dst, cv.COLOR_BGR2GRAY);
 	cv.threshold(dst, dst, 150, 255, cv.THRESH_BINARY_INV);
 
-	let contours = new cv.MatVector();
-	let hierarchy = new cv.Mat();
+	const contours = new cv.MatVector();
+	const hierarchy = new cv.Mat();
 	cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-	let contour = contours.get(0);
-	let moment = cv.moments(contour);
+	const contour = contours.get(0);
+	const moment = cv.moments(contour);
 
 	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)];
 }
 
-async function saveSliderCaptchaImages(page: Page) {
-	await page.waitForSelector(".tab-item.tab-item-1");
-	await page.click(".tab-item.tab-item-1");
-
-	await page.waitForSelector('[aria-label="Click to verify"]');
-	await new Promise(r => setTimeout(r, 1000));
-
-	await page.click('[aria-label="Click to verify"]');
-
-	await page.waitForSelector(".geetest_canvas_img canvas", { visible: true });
-	await new Promise(r => setTimeout(r, 1000));
-	let images = await page.$$eval(".geetest_canvas_img canvas", canvases => {
-		return canvases.map(canvas => canvas.toDataURL().replace(/^data:image\/png;base64,/, ""));
-	});
-
-	await fs.writeFile(`./captcha.png`, images[0], "base64");
-	await fs.writeFile(`./original.png`, images[2], "base64");
-}
-
-async function saveDiffImage() {
-	const originalImage = await Jimp.read("./original.png");
-	const captchaImage = await Jimp.read("./captcha.png");
-
-	const { width, height } = originalImage.bitmap;
+function getDiffImage(img1: JimpImage, img2: JimpImage): JimpImage {
+	const { width, height } = img1.bitmap;
+	if (img2.bitmap.width !== width || img2.bitmap.height !== height)
+		throw new Error("Images must have the same dimensions");
 	const diffImage = new Jimp(width, height);
-
-	const diffOptions = { includeAA: true, threshold: 0.2 };
-
-	pixelmatch(originalImage.bitmap.data, captchaImage.bitmap.data, diffImage.bitmap.data, width, height, diffOptions);
-	diffImage.write("./diff.png");
+	pixelmatch(
+		img1.bitmap.data,
+		img2.bitmap.data,
+		diffImage.bitmap.data,
+		width,
+		height,
+		{
+			includeAA: true,
+			threshold: 0.2
+		}
+	);
+	return diffImage;
 }
 
-async function run() {
-	const browser = await puppeteer.launch({
-		headless: false,
-		defaultViewport: { width: 1366, height: 768 }
-	});
-	const page = await browser.newPage();
-
+async function run(page: Page): Promise<boolean | void> {
 	await page.goto("https://www.geetest.com/en/demo", { waitUntil: "networkidle2" });
+	await prepare(page);
 
-	await new Promise(r => setTimeout(r, 1000));
+	const { original, captcha } = await getImages(page);
+	const diffImage = getDiffImage(original, captcha);
 
-	await saveSliderCaptchaImages(page);
-	await saveDiffImage();
-
-	let [cx, cy] = await findDiffPosition(page);
+	let [cx, cy] = findDiffPosition(diffImage);
 
 	const sliderHandle = (await page.$(".geetest_slider_button"))!;
 	const handle = (await sliderHandle.boundingBox())!;
@@ -123,24 +125,45 @@ async function run() {
 	xPosition = handle.x + cx - handle.width / 2;
 	yPosition = handle.y + handle.height / 3;
 	await page.mouse.move(xPosition, yPosition, { steps: 25 });
+	await wait(1000);
 
-	await new Promise(r => setTimeout(r, 1000));
-
-	let [cxPuzzle, cyPuzzle] = await findPuzzlePosition(page);
+	const { puzzle } = await getImages(page);
+	let [cxPuzzle, cyPuzzle] = findPuzzlePosition(puzzle);
 
 	xPosition = xPosition + cx - cxPuzzle;
 	yPosition = handle.y + handle.height / 2;
 	await page.mouse.move(xPosition, yPosition, { steps: 5 });
 	await page.mouse.up();
+	await wait(3000);
 
-	await new Promise(r => setTimeout(r, 3000));
+	const holderClassList = await page.evaluate(() => document.querySelector(".geetest_holder")?.classList);
+	if (holderClassList) {
+		const classes = Object.values(holderClassList);
+		if (classes.includes("geetest_radar_success"))
+			return true;
+		else if (classes.includes("geetest_radar_error"))
+			return false;
+	}
+}
 
-	await fs.unlink("./original.png");
-	await fs.unlink("./captcha.png");
-	await fs.unlink("./diff.png");
-	await fs.unlink("./puzzle.png");
-
+async function main(count?: number) {
+	count ??= 1;
+	const browser = await puppeteer.launch({
+		headless: false,
+		defaultViewport: { width: 1366, height: 768 }
+	});
+	let sucess = 0;
+	const total = count;
+	while (count--) {
+		const context = await browser.createBrowserContext();
+		const page = await context.newPage();
+		const result = await run(page);
+		if (result === true)
+			++sucess;
+		await context.close();
+	}
+	console.log(`Success rate: ${sucess}/${total} (${(sucess / total * 100).toFixed(2)}%)`);
 	await browser.close();
 }
 
-run()
+main();
