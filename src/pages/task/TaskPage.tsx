@@ -42,6 +42,13 @@ export interface TaskResult<TConfig extends object = object, TEvent extends Task
 	mouseInfo: MouseInfo;
 }
 
+export function isMouseMotionRecord(value: unknown): value is MouseMotionRecord {
+	if (!Array.isArray(value) || value.length != 3)
+		return false;
+	const record = value as MouseMotionRecord;
+	return record.every(v => typeof v == "number");
+}
+
 export function isTaskResult(value: unknown): value is TaskResult {
 	if (typeof value != "object" || value == null)
 		return false;
@@ -50,7 +57,7 @@ export function isTaskResult(value: unknown): value is TaskResult {
 		Array.isArray(result.dimention) && result.dimention.length == 2 &&
 		typeof result.config == "object" &&
 		Array.isArray(result.events) && result.events.every(event => typeof event.timestamp == "number") &&
-		Array.isArray(result.motion) && result.motion.every(record => Array.isArray(record) && record.length == 3) &&
+		Array.isArray(result.motion) && result.motion.every(isMouseMotionRecord) &&
 		typeof result.mouseInfo == "object" && result.mouseInfo != null && typeof result.mouseInfo.dpi == "number";
 }
 
