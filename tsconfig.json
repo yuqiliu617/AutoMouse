@@ -13,6 +13,8 @@
 	},
 	"ts-node": {
 		"transpileOnly": true,
-		"esm": true
+		"compilerOptions": {
+			"module": "CommonJS"
+		}
 	}
 }
