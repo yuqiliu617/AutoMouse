@@ -1,3 +1,4 @@
+import { Vector } from "@automouse/utility";
 import "basic-type-extensions";
 import puppeteer, { type Page } from "puppeteer";
 import Jimp from "jimp";
@@ -35,7 +36,7 @@ async function getImages(page: Page): Promise<Record<"captcha" | "puzzle" | "ori
 	};
 }
 
-function findPuzzlePosition(puzzleImg: JimpImage): [x: number, y: number] {
+function findPuzzlePosition(puzzleImg: JimpImage): Vector {
 	const srcPuzzle = cv.matFromImageData(puzzleImg.bitmap);
 	const dstPuzzle = new cv.Mat();
 
@@ -54,10 +55,10 @@ function findPuzzlePosition(puzzleImg: JimpImage): [x: number, y: number] {
 	const contour = contours.get(0);
 	const moment = cv.moments(contour);
 
-	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)];
+	return new Vector(Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00));
 }
 
-function findDiffPosition(diffImage: JimpImage): [x: number, y: number] {
+function findDiffPosition(diffImage: JimpImage): Vector {
 	const src = cv.matFromImageData(diffImage.bitmap);
 
 	const dst = new cv.Mat();
@@ -80,7 +81,7 @@ function findDiffPosition(diffImage: JimpImage): [x: number, y: number] {
 	const contour = contours.get(0);
 	const moment = cv.moments(contour);
 
-	return [Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00)];
+	return new Vector(Math.floor(moment.m10 / moment.m00), Math.floor(moment.m01 / moment.m00));
 }
 
 function getDiffImage(img1: JimpImage, img2: JimpImage): JimpImage {
@@ -106,33 +107,25 @@ async function run(page: Page): Promise<boolean | void> {
 	await page.goto("https://www.geetest.com/en/demo", { waitUntil: "networkidle2" });
 	await prepare(page);
 
-	const { original, captcha } = await getImages(page);
-	const diffImage = getDiffImage(original, captcha);
+	const images = await getImages(page);
 
-	let [cx, cy] = findDiffPosition(diffImage);
+	const source = findPuzzlePosition(images.puzzle);
+	const diffImage = getDiffImage(images.original, images.captcha);
+	const target = findDiffPosition(diffImage);
 
 	const sliderHandle = (await page.$(".geetest_slider_button"))!;
 	const handle = (await sliderHandle.boundingBox())!;
 
-	let xPosition = handle.x + handle.width / 2;
-	let yPosition = handle.y + handle.height / 2;
-	await page.mouse.move(xPosition, yPosition);
+	const cursor = new Vector(handle.x + handle.width / 2, handle.y + handle.height / 2);
+	await page.mouse.move(cursor.x, cursor.y);
+
 	await page.mouse.down();
-
-	xPosition = handle.x + cx - handle.width / 2;
-	yPosition = handle.y + handle.height / 3;
-	await page.mouse.move(xPosition, yPosition, { steps: 25 });
-	await Promise.sleep(500);
-
-	const { puzzle } = await getImages(page);
-	let [cxPuzzle, cyPuzzle] = findPuzzlePosition(puzzle);
-
-	xPosition = xPosition + cx - cxPuzzle;
-	yPosition = handle.y + handle.height / 2;
-	await page.mouse.move(xPosition, yPosition, { steps: 5 });
+	cursor.x += target.x - source.x;
+	cursor.y += Math.randomInteger(-handle.height, handle.height);
+	await page.mouse.move(cursor.x, cursor.y, { steps: 25 });
 	await page.mouse.up();
-	await Promise.sleep(2000);
 
+	await Promise.sleep(2000);
 	const holderClassList = await page.evaluate(() => document.querySelector(".geetest_holder")?.classList);
 	if (holderClassList) {
 		const classes = Object.values(holderClassList);

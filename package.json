@@ -17,6 +17,7 @@
 	"author": "Filip Vitas",
 	"license": "MIT",
 	"dependencies": {
+		"@automouse/utility": "link:../Utility",
 		"basic-type-extensions": "^4.4.0",
 		"jimp": "0.22.12",
 		"opencv-wasm": "4.3.0-10",
