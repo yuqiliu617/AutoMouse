@@ -14,6 +14,7 @@
 		"@suid/material": "^0.16.0",
 		"basic-type-extensions": "^4.4.0",
 		"konva": "^9.3.6",
+		"ml-matrix": "^6.11.0",
 		"solid-js": "^1.8.16"
 	},
 	"devDependencies": {
