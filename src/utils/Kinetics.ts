@@ -1,37 +1,9 @@
+import { Vector, type Point } from "@automouse/utility";
 import "basic-type-extensions";
 import { Matrix, inverse } from "ml-matrix";
 
 import { type MouseMotionRecord } from "../pages/task/TaskPage";
 
-
-export class Vector {
-	constructor(public x: number, public y: number) { }
-
-	get length(): number {
-		return Math.hypot(this.x, this.y);
-	}
-	set length(value: number) {
-		const k = value / this.length;
-		this.x *= k;
-		this.y *= k;
-	}
-
-	get angle(): number {
-		return Math.atan2(this.y, this.x);
-	}
-	set angle(value: number) {
-		const len = this.length;
-		this.x = len * Math.cos(value);
-		this.y = len * Math.sin(value);
-	}
-
-	add(v: Vector): Vector {
-		return new Vector(this.x + v.x, this.y + v.y);
-	}
-	sub(v: Vector): Vector {
-		return new Vector(this.x - v.x, this.y - v.y);
-	}
-}
 
 class Spline {
 	xs: number[];
@@ -40,12 +12,12 @@ class Spline {
 
 	private ks: Float64Array;
 
-	constructor(coords: Vector[])
+	constructor(coords: Point[])
 	constructor(xs: number[], ys: number[])
-	constructor(param1: Vector[] | number[], param2?: number[]) {
+	constructor(param1: Point[] | number[], param2?: number[]) {
 		const [xs, ys] = param2
 			? [param1 as number[], param2]
-			: [(param1 as Vector[]).map(({ x }) => x), (param1 as Vector[]).map(({ y }) => y)];
+			: [(param1 as Point[]).map(({ x }) => x), (param1 as Point[]).map(({ y }) => y)];
 		if (xs.length !== ys.length)
 			throw Error("Input arrays must be of same size.");
 		if (!xs.isAscending())

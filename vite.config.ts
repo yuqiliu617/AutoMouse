@@ -9,5 +9,8 @@ export default defineConfig({
 	build: {
 		target: "esnext",
 		outDir: "../dist"
+	},
+	optimizeDeps: {
+		include: ["@automouse/utility"]
 	}
 });
