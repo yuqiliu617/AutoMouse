@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  basic-type-extensions:
+    specifier: ^4.4.0
+    version: 4.4.0
   jimp:
     specifier: 0.22.12
     version: 0.22.12
@@ -52,6 +55,32 @@ packages:
       chalk: 2.4.2
       js-tokens: 4.0.0
       picocolors: 1.0.0
+    dev: false
+
+  /@basic-type-extensions/array-constructor@1.0.2:
+    resolution: {integrity: sha512-FzQYE2BGEYEg3TZ36kfBV2w46aV7MIDtDZvZD8oMLLy/JyQDnaaaiDhVBhD+Sfk8NTNgMYwqsps5J2mwtBG6Uw==}
+    dev: false
+
+  /@basic-type-extensions/array@1.5.0:
+    resolution: {integrity: sha512-5GqKlHJhSvCia84fMCRyJY0IauJ3GKF0P0hJ0pucme4lNnzrKeUrRT+4M/UcFwZnaZ6qRyX1O56l90WkpcKUEw==}
+    dev: false
+
+  /@basic-type-extensions/math@1.1.0:
+    resolution: {integrity: sha512-XOia2Yn8nDHGuoKPrvHSTN+TMdtDeX4rdRCOyDZoHbiqoaZP3uSS6nS/dULUrCDnZJpz9kn4rUW6ub/8/IFKWQ==}
+    dev: false
+
+  /@basic-type-extensions/object-constructor@2.0.0:
+    resolution: {integrity: sha512-/VxLiv0OaGvo45inFzYHbmKOfWoyr1rkV4bdikm1pBjUJ5z/80WuXttDlWjw5JWrkh/0iCjI7KFygY9hY/JCQA==}
+    dependencies:
+      lodash.clonedeep: 4.5.0
+    dev: false
+
+  /@basic-type-extensions/promise-constructor@1.0.2:
+    resolution: {integrity: sha512-sYEUYAflf9e27LnBzTqOjjdy0XzH/DR/GvGPj+g+u4jGRhLmG8pbE9SHoMG6XAEzSOKNWy/2LtoCUG6ywxxk6A==}
+    dev: false
+
+  /@basic-type-extensions/string-constructor@1.0.4:
+    resolution: {integrity: sha512-kfwA0OkBE1suQSL2x76gac6gdUcspVE8pZXJgSsm7NXg/IBsNJHUlsUFSd+JGnp52mipH9GLM/u0blN9e5uxnA==}
     dev: false
 
   /@cspotcode/source-map-support@0.8.1:
@@ -589,6 +618,17 @@ packages:
     engines: {node: '>=10.0.0'}
     dev: false
 
+  /basic-type-extensions@4.4.0:
+    resolution: {integrity: sha512-0jaPllqVMq5zAaWPbshYz23ZANBvcLj/cQE4YCryeP49sFNJ9GZG+Pb14n4whWgyu8EtVVnwcrCNHhMXvEmbXA==}
+    dependencies:
+      '@basic-type-extensions/array': 1.5.0
+      '@basic-type-extensions/array-constructor': 1.0.2
+      '@basic-type-extensions/math': 1.1.0
+      '@basic-type-extensions/object-constructor': 2.0.0
+      '@basic-type-extensions/promise-constructor': 1.0.2
+      '@basic-type-extensions/string-constructor': 1.0.4
+    dev: false
+
   /bmp-js@0.1.0:
     resolution: {integrity: sha512-vHdS19CnY3hwiNdkaqk93DvjVLfbEcI8mys4UjuWrlX1haDmroo8o4xCzh4wD6DGV6HxRCyauwhHRqMTfERtjw==}
     dev: false
@@ -1004,6 +1044,10 @@ packages:
       phin: 2.9.3
       xhr: 2.6.0
       xtend: 4.0.2
+    dev: false
+
+  /lodash.clonedeep@4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
     dev: false
 
   /lru-cache@6.0.0:

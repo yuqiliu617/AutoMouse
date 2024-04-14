@@ -1,3 +1,4 @@
+import "basic-type-extensions";
 import puppeteer, { type Page } from "puppeteer";
 import Jimp from "jimp";
 import pixelmatch from "pixelmatch";
@@ -6,20 +7,16 @@ import { cv } from "opencv-wasm";
 
 type JimpImage = Awaited<ReturnType<typeof Jimp.read>>;
 
-async function wait(ms: number) {
-	return new Promise(r => setTimeout(r, ms));
-}
-
 async function prepare(page: Page) {
 	await page.waitForSelector(".tab-item.tab-item-1");
 	await page.click(".tab-item.tab-item-1");
 
 	await page.waitForSelector("[aria-label=\"Click to verify\"]");
-	await wait(500);
+	await Promise.sleep(500);
 	await page.click("[aria-label=\"Click to verify\"]");
 
 	await page.waitForSelector(".geetest_canvas_img canvas", { visible: true });
-	await wait(1000);
+	await Promise.sleep(1000);
 }
 
 async function getImages(page: Page): Promise<Record<"captcha" | "puzzle" | "original", JimpImage>> {
@@ -30,7 +27,7 @@ async function getImages(page: Page): Promise<Record<"captcha" | "puzzle" | "ori
 	if (images.length !== 3)
 		throw new Error("Expected 3 images, but got " + images.length);
 
-	const jimpImages = await Promise.all(images.map(img => Jimp.read(Buffer.from(img, "base64"))));
+	const jimpImages = await images.mapAsync(img => Jimp.read(Buffer.from(img, "base64")));
 	return {
 		captcha: jimpImages[0],
 		puzzle: jimpImages[1],
@@ -125,7 +122,7 @@ async function run(page: Page): Promise<boolean | void> {
 	xPosition = handle.x + cx - handle.width / 2;
 	yPosition = handle.y + handle.height / 3;
 	await page.mouse.move(xPosition, yPosition, { steps: 25 });
-	await wait(1000);
+	await Promise.sleep(500);
 
 	const { puzzle } = await getImages(page);
 	let [cxPuzzle, cyPuzzle] = findPuzzlePosition(puzzle);
@@ -134,7 +131,7 @@ async function run(page: Page): Promise<boolean | void> {
 	yPosition = handle.y + handle.height / 2;
 	await page.mouse.move(xPosition, yPosition, { steps: 5 });
 	await page.mouse.up();
-	await wait(3000);
+	await Promise.sleep(2000);
 
 	const holderClassList = await page.evaluate(() => document.querySelector(".geetest_holder")?.classList);
 	if (holderClassList) {
