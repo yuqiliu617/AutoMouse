@@ -3,7 +3,14 @@ import { Vector } from "@automouse/utility";
 import type { MouseMotionSimulator } from "./common";
 
 
-const uniformMotion: MouseMotionSimulator = function* (source, dest, config) {
+export interface UniformMotionConfig extends MouseMotionSimulator.Config {
+	/**
+	 * Duration of the motion in milliseconds.
+	 */
+	duration: number;
+}
+
+const uniformMotion: MouseMotionSimulator<UniformMotionConfig> = function* (source, dest, config) {
 	const reportRate = config.reportRate ?? 100;
 	let cur = new Vector(source.x, source.y);
 	let timestamp = 0;
