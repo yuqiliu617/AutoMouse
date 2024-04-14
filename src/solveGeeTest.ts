@@ -1,9 +1,9 @@
 import { Vector } from "@automouse/utility";
 import "basic-type-extensions";
-import puppeteer, { type Page } from "puppeteer";
 import Jimp from "jimp";
-import pixelmatch from "pixelmatch";
 import { cv } from "opencv-wasm";
+import pixelmatch from "pixelmatch";
+import puppeteer, { Page } from "puppeteer";
 
 
 type JimpImage = Awaited<ReturnType<typeof Jimp.read>>;
@@ -103,7 +103,7 @@ function getDiffImage(img1: JimpImage, img2: JimpImage): JimpImage {
 	return diffImage;
 }
 
-async function run(page: Page): Promise<boolean | void> {
+export default async function solveGeeTest(page: Page): Promise<boolean | void> {
 	await page.goto("https://www.geetest.com/en/demo", { waitUntil: "networkidle2" });
 	await prepare(page);
 
@@ -148,7 +148,7 @@ async function main(count?: number) {
 		const context = await browser.createBrowserContext();
 		const page = await context.newPage();
 		page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0");
-		await run(page).then(
+		await solveGeeTest(page).then(
 			result => {
 				if (result === true)
 					++sucess;
