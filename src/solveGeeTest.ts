@@ -5,6 +5,8 @@ import { cv } from "opencv-wasm";
 import pixelmatch from "pixelmatch";
 import type { Page } from "puppeteer";
 
+import type { MouseMotionSimulator } from "./simulators";
+
 
 type JimpImage = Awaited<ReturnType<typeof Jimp.read>>;
 
@@ -103,26 +105,38 @@ function getDiffImage(img1: JimpImage, img2: JimpImage): JimpImage {
 	return diffImage;
 }
 
-export default async function solveGeeTest(page: Page): Promise<boolean | void> {
+export default async function solveGeeTest<TConfig extends MouseMotionSimulator.Config>(
+	page: Page,
+	simulator: MouseMotionSimulator<TConfig>,
+	simulatorConfig: TConfig
+): Promise<boolean | void> {
 	await page.goto("https://www.geetest.com/en/demo", { waitUntil: "networkidle2" });
 	await prepare(page);
 
 	const images = await getImages(page);
 
-	const source = findPuzzlePosition(images.puzzle);
-	const diffImage = getDiffImage(images.original, images.captcha);
-	const target = findDiffPosition(diffImage);
+	const puzzle = findPuzzlePosition(images.puzzle);
+	const diffImg = getDiffImage(images.original, images.captcha);
+	const slot = findDiffPosition(diffImg);
 
 	const sliderHandle = (await page.$(".geetest_slider_button"))!;
 	const handle = (await sliderHandle.boundingBox())!;
 
-	const cursor = new Vector(handle.x + handle.width / 2, handle.y + handle.height / 2);
-	await page.mouse.move(cursor.x, cursor.y);
+	const source = new Vector(handle.x + handle.width / 2, handle.y + handle.height / 2);
+	const target = source.add(new Vector(slot.x - puzzle.x, Math.randomInteger(-handle.height, handle.height)));
 
+	await page.mouse.move(source.x, source.y);
 	await page.mouse.down();
-	cursor.x += target.x - source.x;
-	cursor.y += Math.randomInteger(-handle.height, handle.height);
-	await page.mouse.move(cursor.x, cursor.y, { steps: 25 });
+	const startTime = performance.now();
+	for (const point of simulator(source, target, simulatorConfig)) {
+		let curTime = performance.now() - startTime;
+		if (curTime > point.timestamp)
+			continue;
+		await page.mouse.move(point.x, point.y);
+		curTime = performance.now() - startTime;
+		if (point.timestamp - curTime > 1)
+			await Promise.sleep(point.timestamp - curTime);
+	}
 	await page.mouse.up();
 
 	await Promise.sleep(2000);

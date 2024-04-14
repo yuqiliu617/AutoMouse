@@ -1,9 +1,14 @@
 import puppeteer from "puppeteer";
 
+import { type MouseMotionSimulator } from "./simulators";
 import solveGeeTest from "./solveGeeTest";
 
 
-async function main(count?: number) {
+async function main<TConfig extends MouseMotionSimulator.Config>(
+	simulator: MouseMotionSimulator<TConfig>,
+	simulatorConfig: TConfig,
+	count?: number
+) {
 	count ??= 1;
 	const browser = await puppeteer.launch({
 		headless: false,
@@ -15,7 +20,7 @@ async function main(count?: number) {
 		const context = await browser.createBrowserContext();
 		const page = await context.newPage();
 		page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0");
-		await solveGeeTest(page).then(
+		await solveGeeTest(page, simulator, simulatorConfig).then(
 			result => {
 				if (result === true)
 					++sucess;
