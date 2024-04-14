@@ -152,14 +152,20 @@ async function main(count?: number) {
 		headless: false,
 		defaultViewport: { width: 1366, height: 768 }
 	});
-	let sucess = 0;
-	const total = count;
+	let sucess = 0, total = count;
 	while (count--) {
 		const context = await browser.createBrowserContext();
 		const page = await context.newPage();
-		const result = await run(page);
-		if (result === true)
-			++sucess;
+		await run(page).then(
+			result => {
+				if (result === true)
+					++sucess;
+			},
+			err => {
+				console.error(err);
+				--total;
+			}
+		);
 		await context.close();
 	}
 	console.log(`Success rate: ${sucess}/${total} (${(sucess / total * 100).toFixed(2)}%)`);
