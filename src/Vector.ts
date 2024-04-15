@@ -3,25 +3,19 @@ export interface Point {
 	y: number;
 }
 
-export class ReadonlyVector {
+type Param1 = number | Readonly<Point> | [number, number];
+
+export class ReadonlyVector implements Readonly<Point> {
 	protected _x: number;
 	protected _y: number;
 
 	constructor(point: Readonly<Point>);
-	constructor(point: readonly [x: number, y: number]);
+	constructor(point: [x: number, y: number]);
 	constructor(x: number, y: number);
-	constructor(param1: number | Readonly<Point> | readonly [number, number], param2?: number) {
-		if (typeof param1 === "number") {
-			this._x = param1;
-			this._y = param2!;
-		}
-		else if (Array.isArray(param1))
-			[this._x, this._y] = param1;
-		else {
-			const point = param1 as Readonly<Point>;
-			this._x = point.x;
-			this._y = point.y;
-		}
+	constructor(param1: Param1, param2?: number) {
+		const point = this.parseParams(param1, param2);
+		this._x = point.x;
+		this._y = point.y;
 	}
 
 	static get origin(): ReadonlyVector {
@@ -41,11 +35,25 @@ export class ReadonlyVector {
 		return Math.atan2(this._y, this._x);
 	}
 
-	add(v: ReadonlyVector): ReadonlyVector {
-		return new ReadonlyVector(this._x + v._x, this._y + v._y);
+	protected parseParams(p1: Param1, p2?: number): Point {
+		return typeof p1 === "number"
+			? { x: p1, y: p2! }
+			: Array.isArray(p1) ? { x: p1[0], y: p1[1] } : p1;
 	}
-	sub(v: ReadonlyVector): ReadonlyVector {
-		return new Vector(this._x - v._x, this._y - v._y);
+
+	add(v: Readonly<Point>): ReadonlyVector;
+	add(v: [x: number, y: number]): ReadonlyVector;
+	add(x: number, y: number): ReadonlyVector;
+	add(param1: Param1, param2?: number): ReadonlyVector {
+		const point = this.parseParams(param1, param2);
+		return new ReadonlyVector(this._x + point.x, this._y + point.y);
+	}
+	sub(v: ReadonlyVector): ReadonlyVector;
+	sub(v: [x: number, y: number]): ReadonlyVector;
+	sub(x: number, y: number): ReadonlyVector;
+	sub(param1: Param1, param2?: number): ReadonlyVector {
+		const point = this.parseParams(param1, param2);
+		return new ReadonlyVector(this._x - point.x, this._y - point.y);
 	}
 	mul(k: number): ReadonlyVector {
 		return new ReadonlyVector(this._x * k, this._y * k);
@@ -53,21 +61,32 @@ export class ReadonlyVector {
 	div(k: number): ReadonlyVector {
 		return new ReadonlyVector(this._x / k, this._y / k);
 	}
+	reverse(): ReadonlyVector {
+		return new ReadonlyVector(-this._x, -this._y);
+	}
 	rotate(radian: number): ReadonlyVector {
 		const cos = Math.cos(radian);
 		const sin = Math.sin(radian);
 		return new ReadonlyVector(this._x * cos - this._y * sin, this._x * sin + this._y * cos);
 	}
 
-	dot(v: ReadonlyVector): number {
-		return this._x * v._x + this._y * v._y;
+	dot(v: Readonly<Point>): number;
+	dot(v: [x: number, y: number]): number;
+	dot(x: number, y: number): number;
+	dot(param1: Param1, param2?: number): number {
+		const point = this.parseParams(param1, param2);
+		return this._x * point.x + this._y * point.y;
 	}
-	cross(v: ReadonlyVector): number {
-		return this._x * v._y - this._y * v._x;
+	cross(v: Readonly<Point>): number;
+	cross(v: [x: number, y: number]): number;
+	cross(x: number, y: number): number;
+	cross(param1: Param1, param2?: number): number {
+		const point = this.parseParams(param1, param2);
+		return this._x * point.y - this._y * point.x;
 	}
 }
 
-export default class Vector extends ReadonlyVector {
+export default class Vector extends ReadonlyVector implements Point {
 	constructor(point: Readonly<Point>);
 	constructor(point: readonly [x: number, y: number]);
 	constructor(x: number, y: number);
@@ -111,11 +130,17 @@ export default class Vector extends ReadonlyVector {
 		this._y = len * Math.sin(value);
 	}
 
-	override add(v: ReadonlyVector): Vector {
-		return new Vector(super.add(v));
+	override add(v: Readonly<Point>): Vector;
+	override add(v: [x: number, y: number]): Vector;
+	override add(x: number, y: number): Vector;
+	override add(param1: Param1, param2?: number): Vector {
+		return new Vector(super.add(param1 as any, param2 as any));
 	}
-	override sub(v: ReadonlyVector): Vector {
-		return new Vector(super.sub(v));
+	override sub(v: Vector): Vector;
+	override sub(v: [x: number, y: number]): Vector;
+	override sub(x: number, y: number): Vector;
+	override sub(param1: Param1, param2?: number): Vector {
+		return new Vector(super.sub(param1 as any, param2 as any));
 	}
 	override mul(k: number): Vector {
 		return new Vector(super.mul(k));
@@ -123,18 +148,29 @@ export default class Vector extends ReadonlyVector {
 	override div(k: number): Vector {
 		return new Vector(super.div(k));
 	}
+	override reverse(): Vector {
+		return new Vector(super.reverse());
+	}
 	override rotate(radian: number): Vector {
 		return new Vector(super.rotate(radian));
 	}
 
-	selfAdd(v: ReadonlyVector): this {
-		this._x += v.x;
-		this._y += v.y;
+	selfAdd(v: Readonly<Point>): this;
+	selfAdd(v: [x: number, y: number]): this;
+	selfAdd(x: number, y: number): this;
+	selfAdd(param1: Param1, param2?: number): this {
+		const point = this.parseParams(param1, param2);
+		this._x += point.x;
+		this._y += point.y;
 		return this;
 	}
-	selfSub(v: ReadonlyVector): this {
-		this._x -= v.x;
-		this._y -= v.y;
+	selfSub(v: Readonly<Point>): this;
+	selfSub(v: [x: number, y: number]): this;
+	selfSub(x: number, y: number): this;
+	selfSub(param1: Param1, param2?: number): this {
+		const point = this.parseParams(param1, param2);
+		this._x -= point.x;
+		this._y -= point.y;
 		return this;
 	}
 	selfMul(k: number): this {
