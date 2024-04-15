@@ -5,6 +5,8 @@ import { Matrix, inverse } from "ml-matrix";
 import { type MouseMotionRecord } from "../pages/task/TaskPage";
 
 
+type SplineInterpolationMethod = "cubic-standard" | "cubic-half-gradient";
+
 class Spline {
 	xs: number[];
 
@@ -12,19 +14,28 @@ class Spline {
 
 	private ks: Float64Array;
 
-	constructor(coords: Point[])
-	constructor(xs: number[], ys: number[])
-	constructor(param1: Point[] | number[], param2?: number[]) {
-		const [xs, ys] = param2
-			? [param1 as number[], param2]
-			: [(param1 as Point[]).map(({ x }) => x), (param1 as Point[]).map(({ y }) => y)];
-		if (xs.length !== ys.length)
+	constructor(coords: Point[], interpolationMethod?: SplineInterpolationMethod)
+	constructor(xs: number[], ys: number[], interpolationMethod?: SplineInterpolationMethod)
+	constructor(param1: Point[] | number[], param2?: number[] | SplineInterpolationMethod, param3?: SplineInterpolationMethod) {
+		let interpolationMethod: SplineInterpolationMethod;
+		if (param1.every(p => typeof p == "number")) {
+			this.xs = param1 as number[];
+			this.ys = param2 as number[];
+			interpolationMethod = param3 ?? "cubic-standard";
+		}
+		else {
+			const coords = param1 as Point[];
+			this.xs = coords.map(p => p.x);
+			this.ys = coords.map(p => p.y);
+			interpolationMethod = param2 as SplineInterpolationMethod ?? "cubic-standard";
+		}
+		if (this.xs.length !== this.ys.length)
 			throw Error("Input arrays must be of same size.");
-		if (!xs.isAscending())
+		if (!this.xs.isAscending())
 			throw Error("xs must increase monotonically.");
-		this.xs = xs;
-		this.ys = ys;
-		this.ks = Spline.estimate(xs, ys);
+		this.ks = interpolationMethod == "cubic-standard"
+			? Spline.interpolate(this.xs, this.ys)
+			: Spline.estimate(this.xs, this.ys);
 	}
 
 	/**
@@ -101,11 +112,11 @@ export default class Kinetics {
 
 	private ySpline: Spline;
 
-	constructor(public samples: MouseMotionRecord[]) {
+	constructor(public samples: MouseMotionRecord[], interpolationMethod?: SplineInterpolationMethod) {
 		if (!samples.isAscending(r => r[0]))
 			samples.sort((a, b) => a[0] - b[0]);
-		this.xSpline = new Spline(samples.map(r => new Vector(r[0], r[1])));
-		this.ySpline = new Spline(samples.map(r => new Vector(r[0], r[2])));
+		this.xSpline = new Spline(samples.map(r => new Vector(r[0], r[1])), interpolationMethod);
+		this.ySpline = new Spline(samples.map(r => new Vector(r[0], r[2])), interpolationMethod);
 	}
 
 	getParameters(t: number): KineticsParameters {
