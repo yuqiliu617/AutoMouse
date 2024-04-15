@@ -40,12 +40,12 @@ const AreaClickAnalysis: Component<{ data: AreaClickResult }> = props => {
 			const motion = props.data.motion.slice(iStart, iEnd);
 			segments.push({ motion, events: currentEvents });
 			const origin = new Vector(motion[0][1], motion[0][2]);
-			const angle = new Vector(currentEvents[0].x, currentEvents[0].y).sub(origin).angle;
+			const radian = new Vector(currentEvents[0].x, currentEvents[0].y).sub(origin).radian;
 			const startTime = motion[0][0];
 			normalizedSegments.push({
 				motion: motion.map(r => {
 					const v = new Vector(r[1], r[2]).sub(origin);
-					v.angle -= angle;
+					v.radian -= radian;
 					v.length *= lengthFactor;
 					return [r[0] - startTime, v.x, v.y];
 				}),
@@ -53,7 +53,7 @@ const AreaClickAnalysis: Component<{ data: AreaClickResult }> = props => {
 					const newEvent = _.cloneDeep(e);
 					newEvent.timestamp -= startTime;
 					const v = new Vector(e.x, e.y).sub(origin);
-					v.angle -= angle;
+					v.radian -= radian;
 					v.length *= lengthFactor;
 					newEvent.x = v.x;
 					newEvent.y = v.y;

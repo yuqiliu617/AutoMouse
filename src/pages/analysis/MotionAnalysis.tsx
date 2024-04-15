@@ -24,11 +24,11 @@ import { colors, chartOptions } from "./common";
 const MotionAnalysis: Component<{ data: MouseMotionRecord[] }> = props => {
 	const source = new Vector(props.data[0][1], props.data[0][2]);
 	const target = new Vector(props.data.last()[1], props.data.last()[2]);
-	const angle = target.sub(source).angle;
+	const radian = target.sub(source).radian;
 	const normalizedData: MouseMotionRecord[] = props.data.map(r => {
 		const v = new Vector(r[1], r[2]);
 		v.selfSub(source);
-		v.angle -= angle;
+		v.radian -= radian;
 		return [r[0] - props.data[0][0], v.x, v.y];
 	});
 	const state = createState({
