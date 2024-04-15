@@ -6,7 +6,7 @@ import solveGeeTest from "./solveGeeTest";
 
 async function main<TConfig extends MouseMotionSimulator.Config>(
 	simulator: MouseMotionSimulator<TConfig>,
-	simulatorConfig: TConfig,
+	simulatorConfig: TConfig | (() => TConfig),
 	count?: number
 ) {
 	count ??= 1;
@@ -20,7 +20,8 @@ async function main<TConfig extends MouseMotionSimulator.Config>(
 		const context = await browser.createBrowserContext();
 		const page = await context.newPage();
 		page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0");
-		await solveGeeTest(page, simulator, simulatorConfig).then(
+		const config = typeof simulatorConfig === "function" ? simulatorConfig() : simulatorConfig;
+		await solveGeeTest(page, simulator, config).then(
 			result => {
 				if (result === true)
 					++sucess;
