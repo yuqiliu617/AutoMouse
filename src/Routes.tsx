@@ -8,6 +8,11 @@ const routes: (RouteDefinition<string | string[]> & { menu?: string })[] = [
 		component: lazy(() => import("./pages/Record"))
 	},
 	{
+		menu: "Analysis",
+		path: "/analysis",
+		component: lazy(() => import("./pages/analysis"))
+	},
+	{
 		menu: "Settings",
 		path: "/settings",
 		component: lazy(() => import("./pages/Settings"))
