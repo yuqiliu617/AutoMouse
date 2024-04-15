@@ -1,4 +1,4 @@
-import type { Point } from "@automouse/utility";
+import { Vector } from "@automouse/utility";
 import { Bezier } from "bezier-js";
 
 import type { MouseMotionSimulator } from "./common";
@@ -11,26 +11,50 @@ export interface BezierCurveConfig extends MouseMotionSimulator.Config {
 	duration: number;
 
 	/**
-	 * The control point of the cubic bezier curve at the beginning.
-	 * Or if `controlPoint2` is omitted, the only control point of the quadratic bezier curve.
+	 * The maximum or range of the length of the control points to the source and destination points.
+	 * Default is 1/3 of the distance between the source and destination points.
 	 */
-	controlPoint1: Point;
+	controlPointRadius?: number | [min: number, max: number];
 
 	/**
-	 * The control point of the cubic bezier curve at the end.
+	 * The maximum or range of the angle of the control points to the source and destination points. Should be within [0, π].
+	 * Default is π / 4.
 	 */
-	controlPoint2?: Point;
+	controlPointAngle?: number | [min: number, max: number];
 }
 
 const bezierCurve: MouseMotionSimulator<BezierCurveConfig> = function* (source, dest, config) {
 	const reportRate = config.reportRate ?? 100;
-	const bezier = config.controlPoint2
-		? new Bezier([source, config.controlPoint1, config.controlPoint2, dest])
-		: new Bezier([source, config.controlPoint1, dest]);
+	const displacement = new Vector(dest).selfSub(source);
+	const radiusRange: [number, number] = config.controlPointRadius == undefined
+		? [0, displacement.length / 3]
+		: Array.isArray(config.controlPointRadius)
+			? config.controlPointRadius
+			: [0, config.controlPointRadius];
+	const angelRange: [number, number] = config.controlPointAngle == undefined
+		? [0, Math.PI / 4]
+		: Array.isArray(config.controlPointAngle)
+			? config.controlPointAngle
+			: [0, config.controlPointAngle];
+
+	const cp1 = new Vector(displacement);
+	const cp2 = cp1.reverse();
+	cp1.length = Math.randomFloat(radiusRange[0], radiusRange[1]);
+	cp2.length = Math.randomFloat(radiusRange[0], radiusRange[1]);
+	cp1.selfRotate(Math.randomFloat(angelRange[0], angelRange[1]) * (Math.random() < 0.5 ? 1 : -1));
+	cp2.selfRotate(Math.randomFloat(angelRange[0], angelRange[1]) * (Math.random() < 0.5 ? 1 : -1));
+	cp1.selfAdd(source);
+	cp2.selfAdd(dest);
+
+	const bezier = new Bezier(source, cp1, cp2, dest);
 	const step = 1000 / config.duration / reportRate;
 	for (let t = step; t < 1; t += step) {
 		const point = bezier.get(t);
-		yield { x: point.x, y: point.y, timestamp: t * config.duration };
+		yield {
+			x: Math.roundTo(point.x, 1),
+			y: Math.roundTo(point.y, 1),
+			timestamp: Math.roundTo(t * config.duration, 1)
+		};
 	}
 	yield { x: dest.x, y: dest.y, timestamp: config.duration };
 }
