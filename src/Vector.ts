@@ -59,6 +59,8 @@ export class ReadonlyVector implements Readonly<Point> {
 		return new ReadonlyVector(this._x * k, this._y * k);
 	}
 	div(k: number): ReadonlyVector {
+		if (k == 0)
+			throw new Error("Cannot divide a vector by zero.");
 		return new ReadonlyVector(this._x / k, this._y / k);
 	}
 	reverse(): ReadonlyVector {
@@ -116,6 +118,11 @@ export default class Vector extends ReadonlyVector implements Point {
 		return super.length;
 	}
 	override set length(value: number) {
+		if (this.length == 0) {
+			if (value != 0)
+				throw new Error("Cannot set the length of a zero vector to a non-zero value.");
+			return;
+		}
 		const k = value / this.length;
 		this._x *= k;
 		this._y *= k;
@@ -179,6 +186,8 @@ export default class Vector extends ReadonlyVector implements Point {
 		return this;
 	}
 	selfDiv(k: number): this {
+		if (k == 0)
+			throw new Error("Cannot divide a vector by zero.");
 		this._x /= k;
 		this._y /= k;
 		return this;
