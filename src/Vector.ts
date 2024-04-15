@@ -37,7 +37,7 @@ export class ReadonlyVector {
 	get length(): number {
 		return Math.hypot(this._x, this._y);
 	}
-	get angle(): number {
+	get radian(): number {
 		return Math.atan2(this._y, this._x);
 	}
 
@@ -53,9 +53,9 @@ export class ReadonlyVector {
 	div(k: number): ReadonlyVector {
 		return new ReadonlyVector(this._x / k, this._y / k);
 	}
-	rotate(angle: number): ReadonlyVector {
-		const cos = Math.cos(angle);
-		const sin = Math.sin(angle);
+	rotate(radian: number): ReadonlyVector {
+		const cos = Math.cos(radian);
+		const sin = Math.sin(radian);
 		return new ReadonlyVector(this._x * cos - this._y * sin, this._x * sin + this._y * cos);
 	}
 
@@ -102,10 +102,10 @@ export default class Vector extends ReadonlyVector {
 		this._y *= k;
 	}
 
-	override get angle(): number {
-		return super.angle;
+	override get radian(): number {
+		return super.radian;
 	}
-	override set angle(value: number) {
+	override set radian(value: number) {
 		const len = this.length;
 		this._x = len * Math.cos(value);
 		this._y = len * Math.sin(value);
@@ -123,8 +123,8 @@ export default class Vector extends ReadonlyVector {
 	override div(k: number): Vector {
 		return new Vector(super.div(k));
 	}
-	override rotate(angle: number): Vector {
-		return new Vector(super.rotate(angle));
+	override rotate(radian: number): Vector {
+		return new Vector(super.rotate(radian));
 	}
 
 	selfAdd(v: ReadonlyVector): this {
@@ -147,9 +147,9 @@ export default class Vector extends ReadonlyVector {
 		this._y /= k;
 		return this;
 	}
-	selfRotate(angle: number): this {
-		const cos = Math.cos(angle);
-		const sin = Math.sin(angle);
+	selfRotate(radian: number): this {
+		const cos = Math.cos(radian);
+		const sin = Math.sin(radian);
 		this._x = this._x * cos - this._y * sin;
 		this._y = this._x * sin + this._y * cos;
 		return this;
