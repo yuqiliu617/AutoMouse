@@ -11,6 +11,9 @@ dependencies:
   basic-type-extensions:
     specifier: ^4.4.0
     version: 4.4.0
+  bezier-js:
+    specifier: ^6.1.4
+    version: 6.1.4
   jimp:
     specifier: 0.22.12
     version: 0.22.12
@@ -25,6 +28,9 @@ dependencies:
     version: 22.6.3(typescript@5.4.4)
 
 devDependencies:
+  '@types/bezier-js':
+    specifier: ^4.1.3
+    version: 4.1.3
   '@types/pixelmatch':
     specifier: ^5.2.6
     version: 5.2.6
@@ -496,6 +502,10 @@ packages:
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
     dev: true
 
+  /@types/bezier-js@4.1.3:
+    resolution: {integrity: sha512-FNVVCu5mx/rJCWBxLTcL7oOajmGtWtBTDjq6DSUWUI12GeePivrZZXz+UgE0D6VYsLEjvExRO03z4hVtu3pTEQ==}
+    dev: true
+
   /@types/node@16.9.1:
     resolution: {integrity: sha512-QpLcX9ZSsq3YYUUnD3nFDY8H7wctAhQj/TFKL8Ya8v5fMm3CFXxo8zStsLAl780ltoYoo1WvKUVGBQK+1ifr7g==}
     dev: false
@@ -630,6 +640,10 @@ packages:
       '@basic-type-extensions/object-constructor': 2.0.0
       '@basic-type-extensions/promise-constructor': 1.0.2
       '@basic-type-extensions/string-constructor': 1.0.4
+    dev: false
+
+  /bezier-js@6.1.4:
+    resolution: {integrity: sha512-PA0FW9ZpcHbojUCMu28z9Vg/fNkwTj5YhusSAjHHDfHDGLxJ6YUKrAN2vk1fP2MMOxVw4Oko16FMlRGVBGqLKg==}
     dev: false
 
   /bmp-js@0.1.0:
