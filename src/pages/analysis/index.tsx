@@ -6,8 +6,13 @@ import AnnotationPlugin from "chartjs-plugin-annotation";
 import { onMount, Switch, Match, type Component } from "solid-js";
 
 import createState from "../../utils/createState";
-import { isTaskResult, type TaskResult, type MouseMotionRecord, type AreaClickResult } from "../task";
+import {
+	isTaskResult, isMouseMotionRecord,
+	type TaskResult, type MouseMotionRecord,
+	type AreaClickResult
+} from "../task";
 import AreaClickAnalysis from "./AreaClickAnalysis";
+import MotionAnalysis from "./MotionAnalysis";
 
 
 const Analysis: Component = () => {
@@ -49,12 +54,17 @@ const Analysis: Component = () => {
 								const data = JSON.parse(text);
 								if (isTaskResult(data))
 									state.data = data;
+								else if (Array.isArray(data) && data.every(isMouseMotionRecord))
+									state.motionData = data;
 							}
 							catch { }
 						}}
 					/>
 				</Button>
 			</Stack>
+		</Match>
+		<Match when={state.motionData != undefined}>
+			<MotionAnalysis data={state.motionData!} />
 		</Match>
 		<Match when={state.data!.taskName == "area-click"}>
 			<AreaClickAnalysis data={state.data as AreaClickResult} />
