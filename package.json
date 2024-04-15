@@ -1,19 +1,14 @@
 {
-	"name": "geetest-slider-captcha-solver",
-	"version": "0.0.1",
-	"description": "GeeTest Puppeteer crawler",
+	"name": "@automouse/evaluation",
+	"version": "1.0.0",
+	"description": "Evaluation of AutoMouse and other mouse motion simulators.",
 	"scripts": {
 		"start": "ts-node src/main.ts"
 	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/fvitas/geetest-slider-captcha-solver.git"
-	},
-	"bugs": {
-		"url": "https://github.com/fvitas/geetest-slider-captcha-solver/issues"
-	},
-	"homepage": "https://github.com/fvitas/geetest-slider-captcha-solver#readme",
-	"author": "Filip Vitas",
+	"author": "Yuqi Liu",
+	"contributors": [
+		"Filip Vitas"
+	],
 	"license": "MIT",
 	"dependencies": {
 		"@automouse/utility": "link:../Utility",
