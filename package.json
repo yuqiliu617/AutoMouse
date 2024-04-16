@@ -8,7 +8,7 @@
 		"start": "vite"
 	},
 	"dependencies": {
-		"@automouse/utility": "link:../Utility",
+		"@automouse/utility": "workspace:*",
 		"@solid-primitives/refs": "^1.0.8",
 		"@solid-primitives/resize-observer": "^2.0.25",
 		"@solidjs/router": "^0.13.1",
