@@ -11,7 +11,7 @@
 	],
 	"license": "MIT",
 	"dependencies": {
-		"@automouse/utility": "link:../Utility",
+		"@automouse/utility": "workspace:*",
 		"basic-type-extensions": "^4.4.0",
 		"bezier-js": "^6.1.4",
 		"jimp": "0.22.12",
