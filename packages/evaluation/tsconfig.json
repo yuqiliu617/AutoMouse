@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"isolatedModules": true,
+		"strict": true,
+		"noImplicitOverride": true,
+		"outDir": "lib",
+		"declaration": true
+	},
+	"ts-node": {
+		"transpileOnly": true
+	}
+}
