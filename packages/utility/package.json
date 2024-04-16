@@ -1,0 +1,13 @@
+{
+	"name": "@automouse/utility",
+	"version": "1.0.0",
+	"description": "",
+	"private": true,
+	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
+	"scripts": {
+		"build": "tsc -p tsconfig.json"
+	},
+	"author": "Yuqi Liu",
+	"license": "MIT"
+}
